@@ -1,0 +1,14 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  # Optional prod-like local stack (uncomment when needed):
+  # mysql:
+  #   image: mysql:8.4
+  #   environment:
+  #     MYSQL_ROOT_PASSWORD: forecastgpt
+  #     MYSQL_DATABASE: forecastgpt
+  #   ports:
+  #     - "3306:3306"

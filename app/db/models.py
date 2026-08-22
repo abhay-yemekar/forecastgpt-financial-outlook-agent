@@ -20,8 +20,10 @@ class ForecastLog(Base):
     id = Column(Integer, primary_key=True, index=True)
     company = Column(String(16), nullable=True, index=True)  # NSE symbol of the subject company
     query = Column(Text, nullable=False)
+    status = Column(String(16), nullable=False, default="queued", index=True)  # queued|running|completed|failed
+    error = Column(Text, nullable=True)
     input_meta = Column(JSON, nullable=True)
-    output_json = Column(JSON, nullable=False)
+    output_json = Column(JSON, nullable=True)  # filled once status == completed
     model_used = Column(String(128), nullable=False)
     storage_backend = Column(String(32), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

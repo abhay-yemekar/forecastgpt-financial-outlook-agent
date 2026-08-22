@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ""
     ANTHROPIC_API_KEY: str = ""
 
+    # Job queue (RQ/Redis) for async forecast execution
+    REDIS_URL: str = "redis://localhost:6379/0"
+
     # Database configuration (used for logging only)
     MYSQL_HOST: str = "localhost"
     MYSQL_PORT: int = 3306

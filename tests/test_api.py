@@ -15,54 +15,74 @@ def test_list_companies(client):
     assert {"TCS", "INFY", "HDFCBANK"}.issubset(symbols)
 
 
-def test_unknown_company_rejected_before_any_work(client, monkeypatch):
-    def should_not_fetch(*args, **kwargs):
-        raise AssertionError("fetched documents for an unknown company")
+def test_unknown_company_rejected_before_enqueue(client, monkeypatch):
+    def should_not_enqueue(*args, **kwargs):
+        raise AssertionError("enqueued a job for an unknown company")
 
-    monkeypatch.setattr("app.main.fetch_recent_docs", should_not_fetch)
-    resp = client.post("/forecast", json={"query": "outlook", "company": "NOTACOMPANY"})
+    monkeypatch.setattr("app.main.enqueue_forecast_job", should_not_enqueue)
+    resp = client.post("/forecasts", json={"query": "outlook", "company": "NOTACOMPANY"})
     assert resp.status_code == 404
     assert "Unknown company" in resp.json()["detail"]
 
 
-def test_forecast_runs_and_logs_row(client, monkeypatch):
-    canned_output = {
-        "company": "Infosys",
-        "period_analyzed": ["Q2 FY26"],
-        "financial_trends": {"revenue": "up", "net_profit": "up", "operating_margin": "flat"},
-        "management_themes": ["GenAI deals"],
-        "risks": ["macro"],
-        "opportunities": ["cost takeout"],
-        "qualitative_forecast_next_quarter": "Stable growth expected.",
-        "confidence": {"level": "medium", "reasons": ["two quarters of data"]},
-    }
+def test_create_forecast_returns_202_and_creates_queued_row(client, monkeypatch):
+    captured = {}
 
-    seen = {}
+    def fake_enqueue(row_id, symbol, slug, name, query, fin_urls, tr_urls):
+        captured.update(
+            row_id=row_id, symbol=symbol, slug=slug, name=name, query=query,
+            fin_urls=fin_urls, tr_urls=tr_urls,
+        )
 
-    def fake_fetch(slug, max_quarters=2):
-        seen["slug"] = slug
-        return [f"{slug}_results.pdf"], [f"{slug}_transcript.pdf"]
+    monkeypatch.setattr("app.main.enqueue_forecast_job", fake_enqueue)
 
-    def fake_run(query, fin, tr, company_name, symbol):
-        return {**canned_output, "_symbol": symbol}
-
-    monkeypatch.setattr("app.main.fetch_recent_docs", fake_fetch)
-    monkeypatch.setattr("app.main.agent.run", fake_run)
-
-    resp = client.post("/forecast", json={"query": "Give me the outlook.", "company": "infy"})
-    assert resp.status_code == 200
+    resp = client.post(
+        "/forecasts",
+        json={"query": "Give me the outlook.", "company": "infy"},
+    )
+    assert resp.status_code == 202
     body = resp.json()
-    assert body["company"] == "Infosys"
-    assert body["_symbol"] == "INFY"
-    assert seen["slug"] == "INFY"  # case-insensitive resolution, correct slug passed to the fetcher
+    assert body["status"] == "queued"
+    assert body["poll"] == f"/forecasts/{body['job_id']}"
+
+    # The enqueue got the resolved company, not the raw user input.
+    assert captured["symbol"] == "INFY" and captured["slug"] == "INFY"
+    assert captured["name"] == "Infosys"
+
+    db = SessionLocal()
+    try:
+        row = db.get(ForecastLog, body["job_id"])
+        assert row.status == "queued"
+        assert row.company == "INFY"
+        assert row.model_used == "ollama:llama3.2"
+        assert row.storage_backend == storage_backend
+    finally:
+        db.close()
+
+    # Immediately pollable: status only, no result yet.
+    poll = client.get(f"/forecasts/{body['job_id']}")
+    assert poll.status_code == 200
+    assert poll.json()["status"] == "queued"
+    assert "result" not in poll.json()
+
+
+def test_enqueue_failure_returns_503_and_marks_row(client, monkeypatch):
+    def broken_enqueue(*args, **kwargs):
+        raise ConnectionError("redis down")
+
+    monkeypatch.setattr("app.main.enqueue_forecast_job", broken_enqueue)
+    resp = client.post("/forecasts", json={"query": "q", "company": "TCS"})
+    assert resp.status_code == 503
 
     db = SessionLocal()
     try:
         row = db.query(ForecastLog).order_by(ForecastLog.id.desc()).first()
-        assert row is not None
-        assert row.company == "INFY"
-        assert row.output_json == body
-        assert row.storage_backend == storage_backend
-        assert storage_backend == "sqlite"  # tests run on the overridden SQLite URL
+        assert row.status == "failed"
+        assert "enqueue failed" in row.error
     finally:
         db.close()
+
+
+def test_get_unknown_job_404(client):
+    resp = client.get("/forecasts/999999")
+    assert resp.status_code == 404

@@ -56,12 +56,17 @@ This project **automates** the entire workflow using an AI agent powered by loca
 ## 🏗 Architecture
 ### **1. System Overview**
 ```
-PDFs → Extractor → Chunker → FAISS Index → LLM Agent → Forecast Output
+POST /forecasts ──▶ create job row (queued) ──▶ RQ/Redis queue
+                                                      │
+GET /forecasts/{id} ◀── forecast_logs (status) ◀── RQ worker
+        (poll)                  ▲                     │
+                                └── fetch PDFs → extract → FAISS RAG → LLM → parse
 ```
+The HTTP request returns **immediately** (202 + job id); clients poll `GET /forecasts/{job_id}` — a slow (multi-minute) forecast never blocks or times out the request.
 
 ### **2. Sequence Flow**
 ```
-User Query → Load PDFs → Cache → Embed → FAISS Search → Generate Context → LLaMA Response → Return JSON
+User Query → job queued → Load PDFs → Cache → Embed → FAISS Search → Generate Context → LLaMA Response → JSON stored → polled by client
 ```
 
 ### **3. RAG Flow (FAISS)**
@@ -98,6 +103,8 @@ app/
 ### ✔ Financial Trend Analysis  
 ### ✔ Risk & Opportunity Detection  
 ### ✔ Local-LLaMA Forecast Generation  
+### ✔ Any Indian Listed Company (seeded registry)  
+### ✔ Async Job Queue (Redis + RQ, poll-based)  
 ### ✔ MySQL Logging  
 ### ✔ Automatic Caching of PDFs  
 ### ✔ Clean JSON API Output  
@@ -105,8 +112,7 @@ app/
 ---
 
 ## 📡 API Usage
-### **Endpoint: `/forecast`**
-Request example:
+### **Submit: `POST /forecasts`** → `202` immediately
 ```json
 {
   "query": "Analyze financials and provide a qualitative forecast.",
@@ -121,6 +127,15 @@ Request example:
 ```
 - `company` (required): NSE symbol or screener.in slug, e.g. `"TCS"`, `"INFY"`. Unknown companies get a clear 404 — check `GET /companies` for the supported list.
 - `financial_doc_urls` / `transcript_urls` (optional): supply your own PDFs; otherwise the latest documents are auto-discovered from screener.in.
+- Response: `{"job_id": 1, "status": "queued", "poll": "/forecasts/1"}`.
+
+### **Poll: `GET /forecasts/{job_id}`**
+```json
+{ "job_id": 1, "company": "TCS", "status": "completed", "created_at": "...", "result": { "...": "full forecast JSON" } }
+```
+`status` moves `queued → running → completed` (result attached) or `failed` (error attached). Poll every few seconds.
+
+### **Health: `GET /health`** — liveness. **`GET /ready`** — checks DB and Redis connectivity (503 when either is down).
 
 ---
 
@@ -150,10 +165,13 @@ https://ollama.com/download
 ollama pull llama3.2
 ```
 
-### 6️⃣ Start API
+### 6️⃣ Start Redis + the worker + the API
 ```
-uvicorn app.main:app --reload
+docker compose up -d redis        # Redis for the job queue
+python -m app.worker              # RQ worker (terminal 1)
+uvicorn app.main:app --reload     # API (terminal 2)
 ```
+`REDIS_URL` (default `redis://localhost:6379/0`) points both processes at your Redis.
 
 ### 7️⃣ (Optional) Run tests & lint
 ```
@@ -171,14 +189,20 @@ USE forecastgpt;
 
 CREATE TABLE forecast_logs (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    company VARCHAR(16),
     query TEXT,
+    status VARCHAR(16) NOT NULL DEFAULT 'queued',
+    error TEXT,
     input_meta JSON,
     output_json JSON,
-    model_used VARCHAR(128),
+    model_used VARCHAR(128) NOT NULL,
     storage_backend VARCHAR(32),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_status (status),
+    INDEX idx_company (company)
 );
 ```
+Note: the schema gained `company`, `status`, and `error` columns in recent phases — if you created the table earlier, drop and recreate it (it holds request logs only).
 
 **Fallback behaviour:** if MySQL is not reachable at startup and `ALLOW_SQLITE_FALLBACK=true`
 (the default), the app logs a prominent warning and writes to a local SQLite file
