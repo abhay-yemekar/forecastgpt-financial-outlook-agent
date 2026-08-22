@@ -1,12 +1,12 @@
-from fastapi import FastAPI, Depends
+from fastapi import Depends, FastAPI
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.agent import ForecastAgent
-from app.db.mysql import get_db, engine
 from app.db.models import Base, ForecastLog
-from app.utils.fetcher import fetch_recent_docs, fetch_given_urls
+from app.db.mysql import engine, get_db, storage_backend
 from app.utils.config import settings
+from app.utils.fetcher import fetch_given_urls, fetch_recent_docs
 
 Base.metadata.create_all(bind=engine)
 
@@ -37,7 +37,8 @@ def forecast(req: ForecastRequest, db: Session = Depends(get_db)):
         query=req.query,
         input_meta={"financial_docs": fin_paths, "transcripts": tr_paths},
         output_json=out,
-        model_used=settings.OPENAI_MODEL
+        model_used=settings.OPENAI_MODEL,
+        storage_backend=storage_backend,
     )
     db.add(row)
     db.commit()

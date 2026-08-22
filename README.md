@@ -34,9 +34,9 @@ This project **automates** the entire workflow using an AI agent powered by loca
 - Enables RAG over large PDF text chunks  
 - Super fast vector indexing  
 
-### **4. PyPDF2 / PDFPlumber**
+### **4. PDFPlumber**
 - Extract structured PDF data  
-- Handles scanned/complex PDFs  
+- Handles complex PDFs  
 
 ### **5. MySQL**
 - Stores logs  
@@ -66,18 +66,20 @@ Documents → Chunk → Embeddings → FAISS Index → Top-K Retrieval → Conte
 ## 📁 Project Structure
 ```
 app/
-│── utils/
-│   ├── fetcher.py         # Download & cache PDFs
-│   ├── text.py            # PDF → text extractor & chunker
-│   ├── config.py          # Settings & paths
-│   ├── logger.py
+│── agent.py               # ForecastAgent: pipeline + system prompt + JSON parsing
+│── main.py                # FastAPI entrypoint (/forecast, /health)
 │── tools/
-│   ├── market_data.py     # Yahoo Finance fetcher
+│   ├── financial_extractor.py  # PDF → metrics + quarter-over-quarter trends
+│   ├── qualitative_rag.py      # FAISS RAG over earnings-call transcripts
+│   └── market_data.py          # Yahoo Finance stock quote (v8 chart API)
 │── db/
-│   ├── connection.py
-│   ├── models.py
-└── main.py                # FastAPI entrypoint
-└── agent.py               # LLM agent + RAG logic
+│   ├── mysql.py           # Engine with explicit, logged SQLite fallback
+│   └── models.py          # forecast_logs table
+└── utils/
+    ├── fetcher.py         # Screener.in scraping + PDF cache
+    ├── text.py            # Text cleanup helpers
+    ├── config.py          # Env-driven settings
+    └── logger.py
 ```
 
 ---
@@ -142,6 +144,13 @@ ollama pull llama3.2
 uvicorn app.main:app --reload
 ```
 
+### 7️⃣ (Optional) Run tests & lint
+```
+pip install -r requirements-dev.txt
+pytest
+ruff check .
+```
+
 ---
 
 ## 🗄 MySQL Setup
@@ -154,10 +163,18 @@ CREATE TABLE forecast_logs (
     query TEXT,
     input_meta JSON,
     output_json JSON,
-    model_used VARCHAR(50),
+    model_used VARCHAR(128),
+    storage_backend VARCHAR(32),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```
+
+**Fallback behaviour:** if MySQL is not reachable at startup and `ALLOW_SQLITE_FALLBACK=true`
+(the default), the app logs a prominent warning and writes to a local SQLite file
+(`forecastgpt_fallback.db`) instead — and every `forecast_logs` row is stamped with
+`storage_backend='sqlite_fallback'` so the fallback is never invisible. Set
+`ALLOW_SQLITE_FALLBACK=false` to make an unreachable MySQL abort startup instead.
+See `.env.example` for all configuration options.
 
 ---
 

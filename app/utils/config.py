@@ -1,6 +1,7 @@
 import os
-from pydantic import BaseModel
+
 from dotenv import load_dotenv
+from pydantic import BaseModel
 
 load_dotenv()
 
@@ -15,6 +16,12 @@ class Settings(BaseModel):
     MYSQL_USER: str = os.getenv("MYSQL_USER", "root")
     MYSQL_PASSWORD: str = os.getenv("MYSQL_PASSWORD", "")
     MYSQL_DB: str = os.getenv("MYSQL_DB", "forecastgpt")
+
+    # Set DATABASE_URL to use a specific engine verbatim (skips MySQL probing).
+    # Otherwise: try MySQL first; if unreachable, fall back to SQLite only when
+    # ALLOW_SQLITE_FALLBACK is enabled (rows are stamped storage_backend).
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "")
+    ALLOW_SQLITE_FALLBACK: bool = os.getenv("ALLOW_SQLITE_FALLBACK", "true").lower() in ("1", "true", "yes")
 
     # Data / scraping
     DATA_DIR: str = os.getenv("DATA_DIR", "data/cache")

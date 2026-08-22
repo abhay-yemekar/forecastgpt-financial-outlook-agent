@@ -15,7 +15,7 @@ venv/
 # --- Environment Files ---
 .env
 .env.*
-!env.example
+!.env.example
 
 # --- Cache & Temporary Files ---
 cache/
@@ -36,6 +36,12 @@ data/cache/
 # --- Project Explanation (Ignore) ---
 Project_Explanation_PDF/
 all_links.txt
+
+# --- Original task assignment docs (local only) ---
+task/
+
+# --- Local agent/session files ---
+.zcode/
 
 # --- Jupyter Notebook ---
 .ipynb_checkpoints/

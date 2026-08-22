@@ -1,5 +1,6 @@
 import logging
 
+
 def get_logger(name="forecastgpt"):
     logger = logging.getLogger(name)
     if logger.handlers:

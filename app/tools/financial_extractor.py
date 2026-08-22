@@ -1,8 +1,10 @@
 import re
-from typing import Dict, Any, List, Optional
+from typing import Any
+
 import pdfplumber
-from app.utils.text import clean_text
+
 from app.utils.logger import get_logger
+from app.utils.text import clean_text
 
 log = get_logger("FinancialDataExtractorTool")
 
@@ -13,14 +15,59 @@ def _extract_text_from_pdf(path: str) -> str:
             texts.append(page.extract_text() or "")
     return clean_text("\n".join(texts))
 
-def _find(patterns: List[str], text: str) -> Optional[str]:
+def _find(patterns: list[str], text: str) -> str | None:
     for pat in patterns:
         m = re.search(pat, text, flags=re.I)
         if m:
             return m.group(1)
     return None
 
-def extract_financial_metrics(pdf_paths: List[str]) -> Dict[str, Any]:
+FLAT_THRESHOLD_PCT = 0.5  # changes smaller than this (in %) count as "flat"
+
+TREND_KEYS = ("total_revenue_inr_cr", "net_profit_inr_cr", "operating_margin_pct")
+
+
+def _to_float(value: str | None) -> float | None:
+    if value is None:
+        return None
+    try:
+        return float(str(value).replace(",", ""))
+    except ValueError:
+        return None
+
+
+def compute_trend(docs: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """Compare the two most recent documents that yielded each metric.
+
+    Screener.in lists documents newest-first, so docs[0] is the latest quarter
+    and docs[1] the previous one. Returns, per metric, a direction
+    (up/down/flat) plus the percent change of latest vs previous; metrics with
+    fewer than two numeric values are reported as "insufficient data".
+    """
+    trends: dict[str, dict[str, Any]] = {}
+    for key in TREND_KEYS:
+        values: list[float] = []
+        for d in docs:
+            v = _to_float(d["metrics"].get(key))
+            if v is not None:
+                values.append(v)
+                if len(values) == 2:
+                    break
+        if len(values) < 2 or values[1] == 0:
+            trends[key] = {"direction": "insufficient data"}
+            continue
+        pct_change = (values[0] - values[1]) / abs(values[1]) * 100
+        if abs(pct_change) < FLAT_THRESHOLD_PCT:
+            direction = "flat"
+        elif pct_change > 0:
+            direction = "up"
+        else:
+            direction = "down"
+        trends[key] = {"direction": direction, "pct_change": round(pct_change, 1)}
+    return trends
+
+
+def extract_financial_metrics(pdf_paths: list[str]) -> dict[str, Any]:
     """Extract key metrics from quarterly financial PDFs."""
     docs = []
     for p in pdf_paths:
@@ -48,9 +95,7 @@ def extract_financial_metrics(pdf_paths: List[str]) -> Dict[str, Any]:
 
         docs.append({"path": p, "metrics": metrics})
 
-    trend = {"docs_analyzed": [d["path"] for d in docs]}
-    if len(docs) >= 2:
-        trend["revenue_direction"] = "compare latest vs previous"
-        trend["margin_direction"] = "compare latest vs previous"
+    trend: dict[str, Any] = {"docs_analyzed": [d["path"] for d in docs]}
+    trend.update(compute_trend(docs))
 
     return {"documents": docs, "trend_summary": trend}

@@ -1,17 +1,13 @@
-from typing import Dict, Any, List
 import json
 import re
+from typing import Any
 
-# Prefer langchain_ollama if available, else fall back to community ChatOllama
-try:
-    from langchain_ollama import ChatOllama
-except Exception:  # pragma: no cover - safe runtime fallback
-    from langchain_community.chat_models import ChatOllama
+from langchain_ollama import ChatOllama
 
-from app.utils.config import settings
 from app.tools.financial_extractor import extract_financial_metrics
-from app.tools.qualitative_rag import QualitativeAnalysisTool
 from app.tools.market_data import fetch_tcs_stock_price
+from app.tools.qualitative_rag import QualitativeAnalysisTool
+from app.utils.config import settings
 from app.utils.logger import get_logger
 
 log = get_logger("ForecastAgent")
@@ -79,7 +75,7 @@ Do NOT:
 # Helper: robust JSON extraction
 # ---------------------------------------------------------------------------
 
-def _parse_json_loose(text: str) -> Dict[str, Any]:
+def _parse_json_loose(text: str) -> dict[str, Any]:
     """
     Try to recover a JSON object from an LLM response.
     Handles:
@@ -125,11 +121,11 @@ def _compress_themes(themes: Any,
     if not isinstance(themes, dict):
         return themes
 
-    compressed: Dict[str, List[str]] = {}
+    compressed: dict[str, list[str]] = {}
     for topic, snippets in themes.items():
         if not isinstance(snippets, list):
             continue
-        trimmed: List[str] = []
+        trimmed: list[str] = []
         for snip in snippets[:max_snippets_per_topic]:
             if not isinstance(snip, str):
                 continue
@@ -152,7 +148,7 @@ class ForecastAgent:
         )
         log.info(f"ForecastAgent initialised with model: {model_name}")
 
-    def run(self, query: str, financial_pdfs: List[str], transcripts: List[str]) -> Dict[str, Any]:
+    def run(self, query: str, financial_pdfs: list[str], transcripts: list[str]) -> dict[str, Any]:
         # 1) Extract hard financial metrics from quarterly PDFs
         fin = extract_financial_metrics(financial_pdfs)
 

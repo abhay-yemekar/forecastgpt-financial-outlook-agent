@@ -4,32 +4,51 @@ from sqlalchemy.orm import sessionmaker
 from app.utils.config import settings
 from app.utils.logger import get_logger
 
-log = get_logger("mysql")
+log = get_logger("db")
 
-# Build the normal MySQL URL first
-DATABASE_URL = (
-    f"mysql+pymysql://{settings.MYSQL_USER}:{settings.MYSQL_PASSWORD}"
-    f"@{settings.MYSQL_HOST}:{settings.MYSQL_PORT}/{settings.MYSQL_DB}"
-)
+SQLITE_FALLBACK_URL = "sqlite:///./forecastgpt_fallback.db"
 
-# We will try MySQL first; if it is not reachable (e.g. during an interview demo
-# where MySQL is not running), we silently fall back to a local SQLite DB so
-# the FastAPI app keeps working without noisy stack traces.
+# Backend actually in use ("mysql", "sqlite_fallback", ...). Writers stamp this
+# into every forecast_logs row so the fallback is never invisible downstream.
+storage_backend = "unknown"
+
+
+def _mysql_url() -> str:
+    return (
+        f"mysql+pymysql://{settings.MYSQL_USER}:{settings.MYSQL_PASSWORD}"
+        f"@{settings.MYSQL_HOST}:{settings.MYSQL_PORT}/{settings.MYSQL_DB}"
+    )
+
+
 def _create_engine_with_fallback():
+    global storage_backend
+
+    # Explicit override wins: no probing, no fallback logic.
+    if settings.DATABASE_URL:
+        engine = create_engine(settings.DATABASE_URL, pool_pre_ping=True)
+        storage_backend = engine.dialect.name
+        log.info(f"Using explicit DATABASE_URL ({storage_backend}).")
+        return engine
+
     try:
-        engine = create_engine(DATABASE_URL, pool_pre_ping=True)
-        # light-weight connectivity check
+        engine = create_engine(_mysql_url(), pool_pre_ping=True)
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
-        log.info("Connected to MySQL successfully.")
+        storage_backend = "mysql"
+        log.info(f"Connected to MySQL at {settings.MYSQL_HOST}:{settings.MYSQL_PORT}/{settings.MYSQL_DB}.")
         return engine
-    except Exception as e:  # pragma: no cover - defensive for local demos
+    except Exception as e:
+        if not settings.ALLOW_SQLITE_FALLBACK:
+            raise RuntimeError(
+                f"MySQL is not reachable ({e}) and ALLOW_SQLITE_FALLBACK is disabled; refusing to start."
+            ) from e
+        storage_backend = "sqlite_fallback"
         log.warning(
-            f"MySQL not available or connection failed ({e}). "
-            "Falling back to local SQLite database for logging."
+            f"MySQL not available ({e}). Falling back to SQLite at '{SQLITE_FALLBACK_URL}'. "
+            f"Every forecast_logs row is stamped storage_backend='sqlite_fallback'."
         )
-        sqlite_url = "sqlite:///./forecastgpt_fallback.db"
-        return create_engine(sqlite_url, echo=False, future=True)
+        return create_engine(SQLITE_FALLBACK_URL, echo=False, future=True)
+
 
 engine = _create_engine_with_fallback()
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

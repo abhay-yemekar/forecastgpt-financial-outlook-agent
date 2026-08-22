@@ -1,11 +1,13 @@
-from typing import List, Dict, Any
+from typing import Any
+
 import pdfplumber
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_ollama import OllamaEmbeddings
 from langchain_community.vectorstores import FAISS
+from langchain_ollama import OllamaEmbeddings
+
 from app.utils.config import settings
-from app.utils.text import clean_text
 from app.utils.logger import get_logger
+from app.utils.text import clean_text
 
 log = get_logger("QualitativeAnalysisTool")
 
@@ -22,7 +24,7 @@ class QualitativeAnalysisTool:
         self.emb = OllamaEmbeddings(model=getattr(settings, "EMBED_MODEL", "nomic-embed-text"))
         self.vdb = None
 
-    def build_index(self, transcript_paths: List[str]):
+    def build_index(self, transcript_paths: list[str]):
         all_text = []
         for p in transcript_paths:
             try:
@@ -34,7 +36,7 @@ class QualitativeAnalysisTool:
         docs = splitter.create_documents(all_text)
         self.vdb = FAISS.from_documents(docs, self.emb)
 
-    def query_themes(self, queries: List[str], k=5) -> Dict[str, Any]:
+    def query_themes(self, queries: list[str], k=5) -> dict[str, Any]:
         if self.vdb is None:
             return {}
         out = {}
