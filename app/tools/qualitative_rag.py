@@ -3,9 +3,8 @@ from typing import Any
 import pdfplumber
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
-from langchain_ollama import OllamaEmbeddings
 
-from app.utils.config import settings
+from app.ai.factory import get_embedding_provider
 from app.utils.logger import get_logger
 from app.utils.text import clean_text
 
@@ -19,9 +18,9 @@ def _pdf_text(path: str) -> str:
     return clean_text("\n".join(texts))
 
 class QualitativeAnalysisTool:
-    """RAG over earning call transcripts using local Ollama embeddings + FAISS."""
+    """RAG over earning call transcripts using configurable embeddings + FAISS."""
     def __init__(self):
-        self.emb = OllamaEmbeddings(model=getattr(settings, "EMBED_MODEL", "nomic-embed-text"))
+        self.emb = get_embedding_provider().get_embedding_model()
         self.vdb = None
 
     def build_index(self, transcript_paths: list[str]):

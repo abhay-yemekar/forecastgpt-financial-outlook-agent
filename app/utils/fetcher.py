@@ -5,7 +5,8 @@ from urllib.parse import urljoin
 import requests
 from bs4 import BeautifulSoup
 
-from .config import settings
+from app.config import settings
+
 from .logger import get_logger
 
 log = get_logger("fetcher")

@@ -31,10 +31,11 @@ This project **automates** the entire workflow using an AI agent powered by loca
 - Auto-generates Swagger UI  
 - Excellent for ML-serving  
 
-### **2. Ollama (LLaMA 3.2)**
+### **2. Ollama (LLaMA 3.2) — default, local & free**
 - Run LLMs locally  
 - No API costs  
 - Fast inference on-device  
+- The backend is **configurable** via `LLM_PROVIDER` / `EMBEDDING_PROVIDER` (`ollama`, `openai`, `anthropic`) — switching is an env-only change; see `app/ai/` and `.env.example`. A deployed instance should point at a cloud provider since most hosts have no GPU for Ollama.
 
 ### **3. FAISS**
 - Used for similarity search  

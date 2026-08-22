@@ -2,12 +2,11 @@ import json
 import re
 from typing import Any
 
-from langchain_ollama import ChatOllama
-
+from app.ai.factory import get_llm_provider
+from app.config import settings
 from app.tools.financial_extractor import extract_financial_metrics
 from app.tools.market_data import fetch_stock_price
 from app.tools.qualitative_rag import QualitativeAnalysisTool
-from app.utils.config import settings
 from app.utils.logger import get_logger
 
 log = get_logger("ForecastAgent")
@@ -148,13 +147,8 @@ MAX_PROMPT_CHARS = 10000  # safeguard for very large inputs
 
 class ForecastAgent:
     def __init__(self) -> None:
-        # We keep the attribute name OPENAI_MODEL for compatibility with your .env
-        model_name = getattr(settings, "OPENAI_MODEL", "llama3.2")
-        self.llm = ChatOllama(
-            model=model_name,
-            temperature=0.2,
-        )
-        log.info(f"ForecastAgent initialised with model: {model_name}")
+        self.llm = get_llm_provider().get_chat_model(temperature=0.2)
+        log.info(f"ForecastAgent initialised with LLM_PROVIDER={settings.LLM_PROVIDER} model: {settings.LLM_MODEL}")
 
     def run(
         self,
