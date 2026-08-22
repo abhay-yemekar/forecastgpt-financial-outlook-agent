@@ -10,7 +10,8 @@ from .logger import get_logger
 
 log = get_logger("fetcher")
 
-SCREENER_DOCS_URL = "https://www.screener.in/company/TCS/consolidated/#documents"
+def screener_docs_url(screener_slug: str) -> str:
+    return f"https://www.screener.in/company/{screener_slug}/consolidated/#documents"
 
 def _download(url: str, out_dir: str) -> str:
     os.makedirs(out_dir, exist_ok=True)
@@ -25,11 +26,12 @@ def _download(url: str, out_dir: str) -> str:
     log.info(f"Downloaded {url} -> {path}")
     return path
 
-def fetch_recent_docs(max_quarters: int = 2):
-    """Scrape Screener docs and download latest PDFs.
+def fetch_recent_docs(company_slug: str, max_quarters: int = 2):
+    """Scrape Screener docs for `company_slug` and download latest PDFs.
     Returns (financial_paths, transcript_paths)
     """
-    resp = requests.get(SCREENER_DOCS_URL, headers={"User-Agent": settings.USER_AGENT}, timeout=60)
+    base_url = screener_docs_url(company_slug)
+    resp = requests.get(base_url, headers={"User-Agent": settings.USER_AGENT}, timeout=60)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
 
@@ -38,7 +40,7 @@ def fetch_recent_docs(max_quarters: int = 2):
         href = a.get("href")
         text = (a.get_text() or "").lower()
         if href and ".pdf" in href.lower():
-            links.append((urljoin(SCREENER_DOCS_URL, href), text))
+            links.append((urljoin(base_url, href), text))
 
     fin_candidates, tr_candidates = [], []
     for url, text in links:

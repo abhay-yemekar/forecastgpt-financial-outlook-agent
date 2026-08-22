@@ -8,10 +8,27 @@ def test_health(client):
     assert resp.json() == {"status": "ok"}
 
 
-def test_forecast_logs_row_with_storage_backend(client, monkeypatch):
+def test_list_companies(client):
+    resp = client.get("/companies")
+    assert resp.status_code == 200
+    symbols = {c["symbol"] for c in resp.json()}
+    assert {"TCS", "INFY", "HDFCBANK"}.issubset(symbols)
+
+
+def test_unknown_company_rejected_before_any_work(client, monkeypatch):
+    def should_not_fetch(*args, **kwargs):
+        raise AssertionError("fetched documents for an unknown company")
+
+    monkeypatch.setattr("app.main.fetch_recent_docs", should_not_fetch)
+    resp = client.post("/forecast", json={"query": "outlook", "company": "NOTACOMPANY"})
+    assert resp.status_code == 404
+    assert "Unknown company" in resp.json()["detail"]
+
+
+def test_forecast_runs_and_logs_row(client, monkeypatch):
     canned_output = {
-        "company": "TCS",
-        "period_analyzed": ["Q2 FY25"],
+        "company": "Infosys",
+        "period_analyzed": ["Q2 FY26"],
         "financial_trends": {"revenue": "up", "net_profit": "up", "operating_margin": "flat"},
         "management_themes": ["GenAI deals"],
         "risks": ["macro"],
@@ -20,18 +37,31 @@ def test_forecast_logs_row_with_storage_backend(client, monkeypatch):
         "confidence": {"level": "medium", "reasons": ["two quarters of data"]},
     }
 
-    monkeypatch.setattr("app.main.fetch_recent_docs", lambda max_quarters=2: (["q2.pdf"], ["t2.pdf"]))
-    monkeypatch.setattr("app.main.agent.run", lambda *a, **k: canned_output)
+    seen = {}
 
-    resp = client.post("/forecast", json={"query": "Give me the outlook."})
+    def fake_fetch(slug, max_quarters=2):
+        seen["slug"] = slug
+        return [f"{slug}_results.pdf"], [f"{slug}_transcript.pdf"]
+
+    def fake_run(query, fin, tr, company_name, symbol):
+        return {**canned_output, "_symbol": symbol}
+
+    monkeypatch.setattr("app.main.fetch_recent_docs", fake_fetch)
+    monkeypatch.setattr("app.main.agent.run", fake_run)
+
+    resp = client.post("/forecast", json={"query": "Give me the outlook.", "company": "infy"})
     assert resp.status_code == 200
-    assert resp.json() == canned_output
+    body = resp.json()
+    assert body["company"] == "Infosys"
+    assert body["_symbol"] == "INFY"
+    assert seen["slug"] == "INFY"  # case-insensitive resolution, correct slug passed to the fetcher
 
     db = SessionLocal()
     try:
         row = db.query(ForecastLog).order_by(ForecastLog.id.desc()).first()
         assert row is not None
-        assert row.output_json == canned_output
+        assert row.company == "INFY"
+        assert row.output_json == body
         assert row.storage_backend == storage_backend
         assert storage_backend == "sqlite"  # tests run on the overridden SQLite URL
     finally:

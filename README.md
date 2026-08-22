@@ -6,6 +6,13 @@ Built with production-like architecture — featuring PDF processing, vector emb
 
 ---
 
+## 🎯 Scope
+ForecastGPT currently supports **Indian listed companies with [screener.in](https://www.screener.in) coverage** — documents are discovered from each company's Screener page (quarterly results, fact sheets, earnings-call transcripts). The company set lives in a seeded registry (`app/companies.py`); call `GET /companies` for the current list.
+
+Adding a company = one line in `SEED_COMPANIES` (NSE symbol + Screener slug). Global filings (SEC/EDGAR, etc.) are a **clear extension point**, not a hidden limitation: plugging in another document source means adding a fetcher alongside `app/utils/fetcher.py`.
+
+---
+
 ## 🧩 Problem Statement
 Financial analysts spend hours manually:
 - Reading quarterly financial PDFs  
@@ -102,6 +109,7 @@ Request example:
 ```json
 {
   "query": "Analyze financials and provide a qualitative forecast.",
+  "company": "TCS",
   "financial_doc_urls": [
     "https://example.com/TCS_Q3_results.pdf"
   ],
@@ -110,6 +118,8 @@ Request example:
   ]
 }
 ```
+- `company` (required): NSE symbol or screener.in slug, e.g. `"TCS"`, `"INFY"`. Unknown companies get a clear 404 — check `GET /companies` for the supported list.
+- `financial_doc_urls` / `transcript_urls` (optional): supply your own PDFs; otherwise the latest documents are auto-discovered from screener.in.
 
 ---
 

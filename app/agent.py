@@ -5,7 +5,7 @@ from typing import Any
 from langchain_ollama import ChatOllama
 
 from app.tools.financial_extractor import extract_financial_metrics
-from app.tools.market_data import fetch_tcs_stock_price
+from app.tools.market_data import fetch_stock_price
 from app.tools.qualitative_rag import QualitativeAnalysisTool
 from app.utils.config import settings
 from app.utils.logger import get_logger
@@ -15,10 +15,12 @@ log = get_logger("ForecastAgent")
 # ---------------------------------------------------------------------------
 # System prompt – keeps role, schema and behaviour very explicit so the model
 # produces strong, concrete outputs instead of "unclear".
+# The subject company is injected via the {company_name} placeholder, so the
+# reasoning rules stay identical for every company.
 # ---------------------------------------------------------------------------
 
-SYSTEM_PROMPT = """
-You are ForecastGPT, a financial forecasting agent for Tata Consultancy Services (TCS).
+SYSTEM_PROMPT_TEMPLATE = """
+You are ForecastGPT, a financial forecasting agent for {company_name}.
 
 Your goal:
 Given structured financial metrics, key transcript snippets and optional market context,
@@ -36,7 +38,7 @@ Output format:
 - The JSON MUST strictly follow this schema and key order:
 
 {
-  "company": "TCS",
+  "company": "{company_name}",
   "period_analyzed": ["string"],
   "financial_trends": {
      "revenue": "string",
@@ -70,6 +72,12 @@ Do NOT:
 - Wrap the JSON in markdown or natural language.
 - Leave fields empty; if something is genuinely unknown, say that explicitly in the string.
 """
+
+
+def build_system_prompt(company_name: str) -> str:
+    # .replace (not str.format) so the literal JSON braces in the schema survive.
+    return SYSTEM_PROMPT_TEMPLATE.replace("{company_name}", company_name)
+
 
 # ---------------------------------------------------------------------------
 # Helper: robust JSON extraction
@@ -148,7 +156,14 @@ class ForecastAgent:
         )
         log.info(f"ForecastAgent initialised with model: {model_name}")
 
-    def run(self, query: str, financial_pdfs: list[str], transcripts: list[str]) -> dict[str, Any]:
+    def run(
+        self,
+        query: str,
+        financial_pdfs: list[str],
+        transcripts: list[str],
+        company_name: str,
+        symbol: str,
+    ) -> dict[str, Any]:
         # 1) Extract hard financial metrics from quarterly PDFs
         fin = extract_financial_metrics(financial_pdfs)
 
@@ -177,7 +192,7 @@ class ForecastAgent:
 
         # 3) Optional market data – completely best-effort
         try:
-            market = fetch_tcs_stock_price()
+            market = fetch_stock_price(symbol)
         except Exception as e:  # pragma: no cover
             log.warning(f"Market fetch failed, continuing without it: {e}")
             market = {}
@@ -192,7 +207,7 @@ class ForecastAgent:
             "Key management commentary snippets from earnings call transcripts, grouped by analytical theme:",
             json.dumps(themes, indent=2, ensure_ascii=False),
             "",
-            "Optional market context for the TCS stock (can be empty):",
+            f"Optional market context for the {company_name} stock (can be empty):",
             json.dumps(market, indent=2, ensure_ascii=False),
             "",
             "Now, using ONLY the information above and following the schema from the system prompt, "
@@ -206,7 +221,7 @@ class ForecastAgent:
             user_prompt = user_prompt[-MAX_PROMPT_CHARS:]
 
         messages = [
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": build_system_prompt(company_name)},
             {"role": "user", "content": user_prompt},
         ]
 
@@ -219,7 +234,7 @@ class ForecastAgent:
             log.error(f"Model output was not valid JSON: {e}")
             # Minimal but still useful fallback payload
             return {
-                "company": "TCS",
+                "company": company_name,
                 "period_analyzed": [],
                 "financial_trends": {
                     "revenue": "unclear",
@@ -242,7 +257,7 @@ class ForecastAgent:
             }
 
         # 6) Ensure all expected keys exist so the frontend / demo never breaks
-        parsed.setdefault("company", "TCS")
+        parsed.setdefault("company", company_name)
         parsed.setdefault("period_analyzed", [])
         parsed.setdefault(
             "financial_trends",
