@@ -1,5 +1,8 @@
+from pathlib import Path
+
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from redis import Redis
 from sqlalchemy import text
@@ -93,7 +96,7 @@ def get_forecast(
     api_key: ApiKey = Depends(require_api_key),
     db: Session = Depends(get_db),
 ):
-    enforce_rate_limit(api_key.id)
+    enforce_rate_limit(api_key.id, bucket="get")
 
     row = db.get(ForecastLog, job_id)
     if row is None:
@@ -134,3 +137,11 @@ def ready():
         checks["redis"] = f"unavailable: {e}"
     ok = all(v == "ok" for v in checks.values())
     return JSONResponse(checks, status_code=200 if ok else 503)
+
+
+# Serve the built web frontend (web/dist) if present — one deployable unit.
+# API routes are registered above, so they take precedence over the mount.
+_web_dist = Path(__file__).resolve().parent.parent / "web" / "dist"
+if _web_dist.is_dir():
+    app.mount("/", StaticFiles(directory=_web_dist, html=True), name="web")
+    log.info(f"Serving web frontend from {_web_dist}")

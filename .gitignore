@@ -63,6 +63,10 @@ dist/
 build/
 *.egg-info
 
+# --- Web frontend ---
+web/node_modules/
+web/dist/
+
 # --- Screenshots ---
 screenshots/source/
 screenshots/raw/

@@ -147,7 +147,7 @@ python -m app.cli key create --email you@example.com --password 'secret'   # pri
 python -m app.cli key list --email you@example.com
 python -m app.cli key revoke --prefix fgpt_AbC123
 ```
-Calls are rate limited per key (fixed window in Redis, `RATE_LIMIT_PER_MINUTE`, default 10/min); exceeding it returns `429` with a `Retry-After` header.
+Calls are rate limited per key (fixed windows in Redis): `RATE_LIMIT_PER_MINUTE` (default 10/min) for `POST /forecasts`, and a separate, larger `RATE_LIMIT_GET_PER_MINUTE` (default 120/min) for status reads so polling a long-running job never eats the submission budget. Exceeding either returns `429` with a `Retry-After` header.
 
 ```bash
 curl -X POST http://localhost:8000/forecasts \
@@ -228,6 +228,36 @@ Note: the schema gained `company`, `status`, and `error` columns in recent phase
 `storage_backend='sqlite_fallback'` so the fallback is never invisible. Set
 `ALLOW_SQLITE_FALLBACK=false` to make an unreachable MySQL abort startup instead.
 See `.env.example` for all configuration options.
+
+---
+
+## 🖥 Web Frontend
+A minimal Vite + React + TypeScript app (in `web/`) that is **just another client of the public API** — company picker, query box, API key (stored only in your browser), live job polling, and a results view with the quarter-over-quarter metric chart.
+```bash
+cd web
+npm install
+npm run dev      # dev server on :5173, proxies /forecasts + /companies to :8000
+npm run build    # outputs web/dist, which the FastAPI app serves automatically
+```
+When `web/dist` exists, `uvicorn app.main:app` serves the built frontend at `/` — one deployable unit.
+
+---
+
+## 🚢 Deployment
+Everything ships as one image (`Dockerfile`, multi-stage: Node builds the frontend, Python serves app + frontend). The RQ worker uses the same image with a different command.
+
+**Local full stack via Docker:**
+```bash
+docker compose up --build api worker          # + redis; add --profile mysql for MySQL
+```
+
+**PaaS (Railway / Render / Fly.io all work):**
+- Deploy the `api` service (the Dockerfile), plus a `worker` service from the same image with command `python -m app.worker`.
+- Add managed Redis and MySQL add-ons; point `REDIS_URL` and `DATABASE_URL` (or `MYSQL_*`) at them.
+- Set `LLM_PROVIDER`/`EMBEDDING_PROVIDER` to a cloud provider (`openai`/`anthropic` + the matching API key) — most hosts have no GPU for Ollama. Ollama stays the local-dev default.
+- Create your first user + API key by running the CLI once against the production DB, e.g. `docker run --rm <image> python -m app.cli user create ...`.
+
+CI (`.github/workflows/ci.yml`) runs ruff + pytest and a frontend type-check/build on every push/PR.
 
 ---
 

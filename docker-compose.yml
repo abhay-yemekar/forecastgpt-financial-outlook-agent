@@ -4,11 +4,59 @@ services:
     ports:
       - "6379:6379"
 
-  # Optional prod-like local stack (uncomment when needed):
-  # mysql:
-  #   image: mysql:8.4
-  #   environment:
-  #     MYSQL_ROOT_PASSWORD: forecastgpt
-  #     MYSQL_DATABASE: forecastgpt
-  #   ports:
-  #     - "3306:3306"
+  # Full local stack: `docker compose up --build api worker`
+  # (add `--profile mysql` for a prod-like MySQL instead of the SQLite fallback).
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      DATABASE_URL: ${DATABASE_URL:-}
+      MYSQL_HOST: ${MYSQL_HOST:-mysql}
+      MYSQL_PORT: ${MYSQL_PORT:-3306}
+      MYSQL_USER: ${MYSQL_USER:-forecastgpt}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-forecastgpt}
+      MYSQL_DB: ${MYSQL_DB:-forecastgpt}
+      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-ollama}
+      LLM_MODEL: ${LLM_MODEL:-llama3.2}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
+      # Reach a host-installed Ollama from containers:
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    depends_on:
+      - redis
+
+  worker:
+    build: .
+    command: python -m app.worker
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      DATABASE_URL: ${DATABASE_URL:-}
+      MYSQL_HOST: ${MYSQL_HOST:-mysql}
+      MYSQL_PORT: ${MYSQL_PORT:-3306}
+      MYSQL_USER: ${MYSQL_USER:-forecastgpt}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-forecastgpt}
+      MYSQL_DB: ${MYSQL_DB:-forecastgpt}
+      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-ollama}
+      LLM_MODEL: ${LLM_MODEL:-llama3.2}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    depends_on:
+      - redis
+
+  mysql:
+    image: mysql:8.4
+    profiles: ["mysql"]
+    environment:
+      MYSQL_ROOT_PASSWORD: forecastgpt
+      MYSQL_USER: forecastgpt
+      MYSQL_PASSWORD: forecastgpt
+      MYSQL_DATABASE: forecastgpt
+    ports:
+      - "3306:3306"

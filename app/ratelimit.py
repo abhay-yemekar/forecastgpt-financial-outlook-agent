@@ -1,4 +1,10 @@
-"""Per-API-key rate limiting: a fixed-window counter in Redis."""
+"""Per-API-key rate limiting: fixed-window counters in Redis.
+
+Two independent buckets: "post" (forecast submissions, expensive —
+RATE_LIMIT_PER_MINUTE) and "get" (status reads, cheap —
+RATE_LIMIT_GET_PER_MINUTE, sized so a client polling every few seconds
+never starves its own submission budget).
+"""
 
 import time
 
@@ -13,24 +19,27 @@ log = get_logger("ratelimit")
 WINDOW_SECONDS = 60
 
 
-def enforce_rate_limit(api_key_id: int) -> None:
-    """Raise HTTP 429 once this key exceeds RATE_LIMIT_PER_MINUTE in the
-    current window. Fixed-window is deliberately simple; set the env to 0
-    to disable limiting (e.g. in tests)."""
-    limit = settings.RATE_LIMIT_PER_MINUTE
+def enforce_rate_limit(api_key_id: int, bucket: str = "post") -> None:
+    """Raise HTTP 429 once this key exceeds its bucket limit in the current
+    window. Set the matching env to 0 to disable a bucket (e.g. in tests)."""
+    limit = (
+        settings.RATE_LIMIT_PER_MINUTE
+        if bucket == "post"
+        else settings.RATE_LIMIT_GET_PER_MINUTE
+    )
     if limit <= 0:
         return
 
     client = Redis.from_url(settings.REDIS_URL)
     window = int(time.time()) // WINDOW_SECONDS
-    bucket = f"ratelimit:{api_key_id}:{window}"
-    count = client.incr(bucket)
+    redis_key = f"ratelimit:{bucket}:{api_key_id}:{window}"
+    count = client.incr(redis_key)
     if count == 1:
-        client.expire(bucket, WINDOW_SECONDS + 1)
+        client.expire(redis_key, WINDOW_SECONDS + 1)
 
     if count > limit:
         retry_after = WINDOW_SECONDS - (int(time.time()) % WINDOW_SECONDS)
-        log.warning(f"Rate limit hit for api_key id={api_key_id} ({count}/{limit} in window).")
+        log.warning(f"Rate limit hit for api_key id={api_key_id} bucket={bucket} ({count}/{limit}).")
         raise HTTPException(
             status_code=429,
             detail=f"Rate limit exceeded: max {limit} requests per minute per API key.",

@@ -1,0 +1,13 @@
+.git
+.venv
+.zcode
+task/
+screenshots/
+tests/
+data/
+web/node_modules
+web/dist
+*.db
+*.pyc
+__pycache__
+.env

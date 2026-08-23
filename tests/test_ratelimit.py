@@ -1,4 +1,5 @@
 import pytest
+from fastapi import HTTPException
 
 from app.config import settings
 from app.ratelimit import WINDOW_SECONDS, enforce_rate_limit
@@ -17,11 +18,22 @@ def test_under_limit_passes(fake_redis, low_limit):
 def test_over_limit_raises_429_with_retry_after(fake_redis, low_limit):
     enforce_rate_limit(1)
     enforce_rate_limit(1)
-    with pytest.raises(Exception) as exc_info:
+    with pytest.raises(HTTPException) as exc_info:
         enforce_rate_limit(1)
     assert exc_info.value.status_code == 429
     retry_after = int(exc_info.value.headers["Retry-After"])
     assert 0 < retry_after <= WINDOW_SECONDS
+
+
+def test_get_bucket_has_separate_budget(fake_redis, low_limit):
+    # low_limit only lowers the "post" bucket; the get bucket keeps its own
+    # (default 120) budget and is counted separately.
+    for _ in range(5):
+        enforce_rate_limit(1, bucket="get")
+    enforce_rate_limit(1)  # post budget untouched by get usage
+    enforce_rate_limit(1)
+    with pytest.raises(HTTPException):
+        enforce_rate_limit(1)  # post bucket (limit 2) now exceeded
 
 
 def test_zero_disables_limiting(monkeypatch):

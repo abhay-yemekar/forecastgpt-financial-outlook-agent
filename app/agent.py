@@ -248,6 +248,7 @@ class ForecastAgent:
                     "transcripts": transcripts,
                 },
                 "market_context": market,
+                "financial_metrics": fin,
             }
 
         # 6) Ensure all expected keys exist so the frontend / demo never breaks
@@ -278,5 +279,8 @@ class ForecastAgent:
             "transcripts": transcripts,
         }
         parsed["market_context"] = market
+        # Raw extractor output (numeric metrics + trend_summary) so clients
+        # can chart the data the forecast was grounded on.
+        parsed["financial_metrics"] = fin
 
         return parsed

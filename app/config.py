@@ -23,8 +23,11 @@ class Settings(BaseSettings):
     # Job queue (RQ/Redis) for async forecast execution
     REDIS_URL: str = "redis://localhost:6379/0"
 
-    # API access: requests per minute per API key (0 disables limiting)
+    # API access: requests per minute per API key (fixed window, 0 disables).
+    # Submissions are expensive; cheap status reads get their own, larger
+    # budget so clients polling a long-running job never starve themselves.
     RATE_LIMIT_PER_MINUTE: int = 10
+    RATE_LIMIT_GET_PER_MINUTE: int = 120
 
     # Database configuration (used for logging only)
     MYSQL_HOST: str = "localhost"

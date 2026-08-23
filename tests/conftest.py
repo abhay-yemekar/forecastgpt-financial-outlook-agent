@@ -71,7 +71,7 @@ def fake_redis(monkeypatch):
 def client(monkeypatch):
     # Rate limiting is exercised in dedicated tests; elsewhere it's a no-op
     # so the suite needs no real Redis.
-    monkeypatch.setattr("app.main.enforce_rate_limit", lambda api_key_id: None)
+    monkeypatch.setattr("app.main.enforce_rate_limit", lambda api_key_id, bucket="post": None)
     with TestClient(app) as c:
         yield c
 
