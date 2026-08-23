@@ -41,6 +41,16 @@ def list_companies(db: Session = Depends(get_db)):
     ]
 
 
+@app.get("/stats")
+def stats(db: Session = Depends(get_db)):
+    """Public, non-sensitive counts for the web app's landing hero."""
+    return {
+        "companies": db.query(Company).count(),
+        "forecasts_total": db.query(ForecastLog).count(),
+        "forecasts_completed": db.query(ForecastLog).filter(ForecastLog.status == "completed").count(),
+    }
+
+
 @app.post("/forecasts", status_code=202)
 def create_forecast(
     req: ForecastRequest,
@@ -88,6 +98,32 @@ def create_forecast(
         raise HTTPException(status_code=503, detail="Job queue unavailable; is Redis running?") from e
 
     return {"job_id": row.id, "status": "queued", "poll": f"/forecasts/{row.id}"}
+
+
+@app.get("/forecasts")
+def list_forecasts(
+    company: str | None = None,
+    limit: int = 20,
+    api_key: ApiKey = Depends(require_api_key),
+    db: Session = Depends(get_db),
+):
+    """Recent forecast jobs, newest first — powers the web app's history panel."""
+    enforce_rate_limit(api_key.id, bucket="get")
+
+    query = db.query(ForecastLog).order_by(ForecastLog.id.desc())
+    if company:
+        query = query.filter(ForecastLog.company == company.strip().upper())
+    rows = query.limit(max(1, min(limit, 50))).all()
+    return [
+        {
+            "job_id": r.id,
+            "company": r.company,
+            "status": r.status,
+            "created_at": r.created_at.isoformat() if r.created_at else None,
+            "error": r.error,
+        }
+        for r in rows
+    ]
 
 
 @app.get("/forecasts/{job_id}")
