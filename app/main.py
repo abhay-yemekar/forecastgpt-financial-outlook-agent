@@ -5,11 +5,13 @@ from redis import Redis
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.auth import require_api_key
 from app.companies import resolve_company, seed_companies
 from app.config import settings
-from app.db.models import Base, Company, ForecastLog
+from app.db.models import ApiKey, Base, Company, ForecastLog
 from app.db.mysql import engine, get_db, storage_backend
 from app.jobs import enqueue_forecast_job
+from app.ratelimit import enforce_rate_limit
 from app.utils.logger import get_logger
 
 log = get_logger("api")
@@ -37,7 +39,13 @@ def list_companies(db: Session = Depends(get_db)):
 
 
 @app.post("/forecasts", status_code=202)
-def create_forecast(req: ForecastRequest, db: Session = Depends(get_db)):
+def create_forecast(
+    req: ForecastRequest,
+    api_key: ApiKey = Depends(require_api_key),
+    db: Session = Depends(get_db),
+):
+    enforce_rate_limit(api_key.id)
+
     # Validate the company before doing any work, so an unrecognized ticker
     # never silently produces an empty forecast.
     company = resolve_company(db, req.company)
@@ -80,7 +88,13 @@ def create_forecast(req: ForecastRequest, db: Session = Depends(get_db)):
 
 
 @app.get("/forecasts/{job_id}")
-def get_forecast(job_id: int, db: Session = Depends(get_db)):
+def get_forecast(
+    job_id: int,
+    api_key: ApiKey = Depends(require_api_key),
+    db: Session = Depends(get_db),
+):
+    enforce_rate_limit(api_key.id)
+
     row = db.get(ForecastLog, job_id)
     if row is None:
         raise HTTPException(status_code=404, detail=f"No forecast job with id {job_id}.")

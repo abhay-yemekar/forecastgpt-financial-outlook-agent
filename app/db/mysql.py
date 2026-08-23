@@ -51,7 +51,9 @@ def _create_engine_with_fallback():
 
 
 engine = _create_engine_with_fallback()
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# expire_on_commit=False keeps ORM attributes readable after commit/close
+# (the CLI prints row fields after committing).
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, expire_on_commit=False)
 
 def get_db():
     db = SessionLocal()

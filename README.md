@@ -137,6 +137,24 @@ app/
 
 ### **Health: `GET /health`** — liveness. **`GET /ready`** — checks DB and Redis connectivity (503 when either is down).
 
+### **Authentication (API keys)**
+`POST /forecasts` and `GET /forecasts/{id}` require an API key in the `X-API-Key` header. `/health`, `/ready`, and `/companies` are open.
+
+Manage users and keys with the CLI (passwords are Argon2id-hashed; only a SHA-256 hash of each key is stored, so a key is shown exactly once):
+```bash
+python -m app.cli user create --email you@example.com --password 'secret'
+python -m app.cli key create --email you@example.com --password 'secret'   # prints the raw key once
+python -m app.cli key list --email you@example.com
+python -m app.cli key revoke --prefix fgpt_AbC123
+```
+Calls are rate limited per key (fixed window in Redis, `RATE_LIMIT_PER_MINUTE`, default 10/min); exceeding it returns `429` with a `Retry-After` header.
+
+```bash
+curl -X POST http://localhost:8000/forecasts \
+  -H "X-API-Key: fgpt_YOUR_KEY" -H "Content-Type: application/json" \
+  -d '{"company": "TCS", "query": "Outlook for next quarter"}'
+```
+
 ---
 
 ## 🧰 Installation & Setup

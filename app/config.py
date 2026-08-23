@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     # Job queue (RQ/Redis) for async forecast execution
     REDIS_URL: str = "redis://localhost:6379/0"
 
+    # API access: requests per minute per API key (0 disables limiting)
+    RATE_LIMIT_PER_MINUTE: int = 10
+
     # Database configuration (used for logging only)
     MYSQL_HOST: str = "localhost"
     MYSQL_PORT: int = 3306
