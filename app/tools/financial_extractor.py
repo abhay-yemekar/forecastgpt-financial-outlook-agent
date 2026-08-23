@@ -78,14 +78,19 @@ def extract_financial_metrics(pdf_paths: list[str]) -> dict[str, Any]:
             continue
 
         metrics = {}
+        # Precise forms first (label + ₹/Rs/INR + crore); the fallback accepts
+        # a bare crore-scale number shortly after the label, because investor
+        # decks flatten tables into "Total Revenue Operating Profit ... 162,990".
         metrics["total_revenue_inr_cr"] = _find([
-            r"total\s+revenue[^₹]{0,20}₹\s*([\d,]+\.?\d*)\s*crore",
-            r"revenue[^₹]{0,20}₹\s*([\d,]+\.?\d*)\s*crore",
+            r"total\s+revenue[^₹0-9]{0,30}(?:₹|rs\.?|inr)\s*([\d,]+\.?\d*)\s*crore",
+            r"revenue[^₹0-9]{0,30}(?:₹|rs\.?|inr)\s*([\d,]+\.?\d*)\s*crore",
+            r"total\s+revenue[^0-9]{0,60}([\d,]{4,})\.?\d*\b",
         ], text)
 
         metrics["net_profit_inr_cr"] = _find([
-            r"net\s+profit[^₹]{0,20}₹\s*([\d,]+\.?\d*)\s*crore",
-            r"profit\s+after\s+tax[^₹]{0,20}₹\s*([\d,]+\.?\d*)\s*crore",
+            r"net\s+profit[^₹0-9]{0,30}(?:₹|rs\.?|inr)\s*([\d,]+\.?\d*)\s*crore",
+            r"profit\s+after\s+tax[^₹0-9]{0,30}(?:₹|rs\.?|inr)\s*([\d,]+\.?\d*)\s*crore",
+            r"net\s+profit[^0-9]{0,60}([\d,]{4,})\.?\d*\b",
         ], text)
 
         metrics["operating_margin_pct"] = _find([

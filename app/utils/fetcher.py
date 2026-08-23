@@ -11,6 +11,27 @@ from .logger import get_logger
 
 log = get_logger("fetcher")
 
+# Link classification for screener.in's #documents section. Text alone is not
+# enough anymore: quarterly numbers often sit in investor presentation decks
+# labelled just "PPT", while the URL (e.g. infosys.com/...quarterly-results...)
+# says what it actually is. Annual reports deliberately do NOT match — wrong
+# period and far too large for the prompt.
+TRANSCRIPT_TEXT = ["earnings call", "transcript"]
+FINANCIAL_TEXT = [
+    "financial", "results", "fact sheet", "quarter", "consolidated",
+    "presentation", "ppt",
+]
+FINANCIAL_URL = ["quarterly-results", "quarterly_results", "financial-results", "results.pdf"]
+
+def classify_doc(url: str, text: str) -> str:
+    """Return 'transcript', 'financial', or 'other' for a documents link."""
+    url_l, text_l = url.lower(), (text or "").lower()
+    if any(k in text_l for k in TRANSCRIPT_TEXT):
+        return "transcript"
+    if any(k in text_l for k in FINANCIAL_TEXT) or any(k in url_l for k in FINANCIAL_URL):
+        return "financial"
+    return "other"
+
 def screener_docs_url(screener_slug: str) -> str:
     return f"https://www.screener.in/company/{screener_slug}/consolidated/#documents"
 
@@ -45,9 +66,10 @@ def fetch_recent_docs(company_slug: str, max_quarters: int = 2):
 
     fin_candidates, tr_candidates = [], []
     for url, text in links:
-        if any(k in text for k in ["earnings call", "transcript"]):
+        kind = classify_doc(url, text)
+        if kind == "transcript":
             tr_candidates.append(url)
-        elif any(k in text for k in ["financial", "results", "fact sheet", "quarter", "consolidated"]):
+        elif kind == "financial":
             fin_candidates.append(url)
 
     fin_urls = fin_candidates[:max_quarters]
