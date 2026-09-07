@@ -37,6 +37,20 @@ export interface Job {
   error?: string | null
 }
 
+export interface JobSummary {
+  job_id: number
+  company: string | null
+  status: JobState
+  created_at: string | null
+  error: string | null
+}
+
+export interface Stats {
+  companies: number
+  forecasts_total: number
+  forecasts_completed: number
+}
+
 export interface SubmitResponse {
   job_id: number
   status: JobState

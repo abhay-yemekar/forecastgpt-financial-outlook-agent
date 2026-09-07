@@ -1,4 +1,4 @@
-import type { Company, Job, SubmitResponse } from './types'
+import type { Company, Job, JobSummary, Stats, SubmitResponse } from './types'
 
 // The web app is just another client of the public /forecasts contract —
 // same endpoints, same API key, no special backend path.
@@ -30,6 +30,18 @@ export function fetchCompanies(): Promise<Company[]> {
     if (!r.ok) throw new Error(`Could not load companies (${r.status})`)
     return r.json() as Promise<Company[]>
   })
+}
+
+export function fetchStats(): Promise<Stats> {
+  return fetch('/stats').then((r) => {
+    if (!r.ok) throw new Error(`Could not load stats (${r.status})`)
+    return r.json() as Promise<Stats>
+  })
+}
+
+export function listForecasts(apiKey: string, company?: string): Promise<JobSummary[]> {
+  const qs = company ? `?company=${encodeURIComponent(company)}` : ''
+  return request<JobSummary[]>(`/forecasts${qs}`, apiKey)
 }
 
 export function submitForecast(

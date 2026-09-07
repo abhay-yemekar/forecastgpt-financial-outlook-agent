@@ -10,6 +10,28 @@ interface Props {
   onSubmit: (company: string, query: string) => void
 }
 
+const KEY_CLI = 'python -m app.cli key create --email you@example.com --password your-password'
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false)
+  return (
+    <button
+      className="ghost"
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(text)
+          setCopied(true)
+          window.setTimeout(() => setCopied(false), 1500)
+        } catch {
+          /* clipboard unavailable */
+        }
+      }}
+    >
+      {copied ? '✓ copied' : 'Copy'}
+    </button>
+  )
+}
+
 export default function SubmitForm({
   apiKey,
   onApiKeyChange,
@@ -25,22 +47,32 @@ export default function SubmitForm({
   const ready = apiKey.trim() !== '' && company !== '' && query.trim() !== '' && !submitting
 
   return (
-    <section className="card form">
+    <section className="glass card form fade-up">
       <label className="field">
         <span>API key</span>
         <div className="key-row">
           <input
             type={showKey ? 'text' : 'password'}
-            placeholder="fgpt_..."
+            placeholder="fgpt_…"
             value={apiKey}
             onChange={(e) => onApiKeyChange(e.target.value)}
             spellCheck={false}
+            className="mono"
           />
           <button type="button" className="ghost" onClick={() => setShowKey((s) => !s)}>
             {showKey ? 'Hide' : 'Show'}
           </button>
         </div>
-        <small>Issued via <code>python -m app.cli key create</code>. Stored only in your browser.</small>
+        <details className="key-help">
+          <summary className="muted small">How do I get a key?</summary>
+          <p className="muted small">
+            Run this against your ForecastGPT instance, then paste the printed <code>fgpt_…</code> key:
+          </p>
+          <div className="code-row">
+            <code>{KEY_CLI}</code>
+            <CopyButton text={KEY_CLI} />
+          </div>
+        </details>
       </label>
 
       <label className="field">
@@ -58,12 +90,13 @@ export default function SubmitForm({
       </label>
 
       <label className="field">
-        <span>Query</span>
+        <span>Ask</span>
         <textarea rows={3} value={query} onChange={(e) => setQuery(e.target.value)} />
       </label>
 
-      <button className="primary" disabled={!ready} onClick={() => onSubmit(company, query)}>
+      <button className="primary submit-btn" disabled={!ready} onClick={() => onSubmit(company, query)}>
         {submitting ? 'Submitting…' : 'Generate forecast'}
+        <span className="submit-hint">~4–6 min · async, keep this tab open</span>
       </button>
     </section>
   )

@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { fetchCompanies, getForecast, submitForecast } from './api'
-import type { Company, Job } from './types'
+import { fetchCompanies, fetchStats, getForecast, listForecasts, submitForecast } from './api'
+import sampleJob from './data/sampleResult.json'
+import type { Company, Job, JobSummary, Stats } from './types'
+import Landing from './components/Landing'
+import Nav from './components/Nav'
 import SubmitForm from './components/SubmitForm'
-import JobStatus from './components/JobStatus'
+import JobTimeline from './components/JobTimeline'
 import ResultView from './components/ResultView'
+import HistoryPanel from './components/HistoryPanel'
 
 const KEY_STORAGE = 'fgpt_api_key'
 const JOB_STORAGE = 'fgpt_active_job'
@@ -11,7 +15,18 @@ const DEFAULT_QUERY =
   'Analyze the latest quarterly results and give a qualitative outlook for the next quarter.'
 const POLL_MS = 3000
 
-// A forecast can run for minutes; a page refresh must not lose it.
+type HashRoute = '' | 'sample' | 'console'
+
+function currentRoute(): HashRoute {
+  const h = window.location.hash.replace(/^#\/?/, '')
+  return h === 'sample' || h === 'console' ? (h as HashRoute) : ''
+}
+
+function goRoute(route: HashRoute) {
+  // Keep the hash in sync so views are shareable and back/forward work.
+  if (currentRoute() !== route) window.location.hash = route ? `#/${route}` : '#/'
+}
+
 function loadActiveJob(): { jobId: number; status: string } | null {
   try {
     const raw = localStorage.getItem(JOB_STORAGE)
@@ -31,33 +46,27 @@ function saveActiveJob(job: { jobId: number; status: string } | null) {
 }
 
 export default function App() {
+  const [view, setView] = useState<'landing' | 'app'>('landing')
   const [apiKey, setApiKey] = useState(() => localStorage.getItem(KEY_STORAGE) ?? '')
   const [companies, setCompanies] = useState<Company[]>([])
-  const [companiesError, setCompaniesError] = useState<string | null>(null)
+  const [stats, setStats] = useState<Stats | null>(null)
   const [job, setJob] = useState<Job | null>(null)
+  const [sample, setSample] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [startedAt, setStartedAt] = useState(Date.now())
+  const [history, setHistory] = useState<JobSummary[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
   const timer = useRef<number | null>(null)
 
   useEffect(() => {
-    fetchCompanies()
-      .then(setCompanies)
-      .catch((e: Error) => setCompaniesError(e.message))
+    fetchCompanies().then(setCompanies).catch(() => {})
+    fetchStats().then(setStats).catch(() => {})
   }, [])
 
   useEffect(() => {
     localStorage.setItem(KEY_STORAGE, apiKey)
   }, [apiKey])
-
-  // Resume an in-flight job after a refresh.
-  useEffect(() => {
-    const active = loadActiveJob()
-    if (active && localStorage.getItem(KEY_STORAGE)) {
-      setJob({ job_id: active.jobId, status: active.status as Job['status'] })
-      poll(active.jobId)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   const stopPolling = useCallback(() => {
     if (timer.current !== null) {
@@ -68,6 +77,54 @@ export default function App() {
 
   useEffect(() => stopPolling, [stopPolling])
 
+  // Views are URL-addressable (#/sample, #/console) so links are shareable
+  // and back/forward work.
+  const applyRoute = useCallback(
+    (route: HashRoute) => {
+      if (route === 'sample') {
+        stopPolling()
+        setSample(true)
+        setSubmitError(null)
+        setJob(sampleJob as unknown as Job)
+        setView('app')
+      } else if (route === 'console') {
+        setView('app')
+      } else {
+        setView('landing')
+      }
+    },
+    [stopPolling],
+  )
+
+  // Resume an in-flight job after a refresh, or honour the current route.
+  useEffect(() => {
+    const active = loadActiveJob()
+    if (active && localStorage.getItem(KEY_STORAGE)) {
+      setView('app')
+      setStartedAt(Date.now())
+      setJob({ job_id: active.jobId, status: active.status as Job['status'] })
+      poll(active.jobId)
+    } else {
+      applyRoute(currentRoute())
+    }
+    const onHashChange = () => applyRoute(currentRoute())
+    window.addEventListener('hashchange', onHashChange)
+    return () => window.removeEventListener('hashchange', onHashChange)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const refreshHistory = useCallback(async () => {
+    if (!apiKey.trim()) return
+    setHistoryLoading(true)
+    try {
+      setHistory(await listForecasts(apiKey))
+    } catch {
+      /* history is best-effort */
+    } finally {
+      setHistoryLoading(false)
+    }
+  }, [apiKey])
+
   const poll = useCallback(
     (jobId: number) => {
       stopPolling()
@@ -76,13 +133,16 @@ export default function App() {
           const next = await getForecast(apiKey, jobId)
           setJob(next)
           saveActiveJob(
-            next.status === 'completed' || next.status === 'failed' ? null : { jobId, status: next.status },
+            next.status === 'completed' || next.status === 'failed'
+              ? null
+              : { jobId, status: next.status },
           )
-          if (next.status === 'completed' || next.status === 'failed') stopPolling()
+          if (next.status === 'completed' || next.status === 'failed') {
+            stopPolling()
+            refreshHistory()
+          }
         } catch (e) {
           const err = e as Error & { status?: number }
-          // A transient 429 must not kill the poller — the next tick will
-          // land in a fresh rate-limit window. Anything else is fatal.
           if (err.status === 429) return
           setSubmitError(err.message)
           stopPolling()
@@ -90,75 +150,125 @@ export default function App() {
         }
       }, POLL_MS)
     },
-    [apiKey, stopPolling],
+    [apiKey, stopPolling, refreshHistory],
   )
+
+  useEffect(() => {
+    if (view === 'app' && apiKey.trim()) refreshHistory()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view])
 
   const onSubmit = useCallback(
     async (company: string, query: string) => {
       setSubmitError(null)
+      setSample(false)
       setSubmitting(true)
       stopPolling()
       setJob(null)
+      setStartedAt(Date.now())
       try {
         const resp = await submitForecast(apiKey, { company, query })
         setJob({ job_id: resp.job_id, status: resp.status })
         saveActiveJob({ jobId: resp.job_id, status: resp.status })
         poll(resp.job_id)
+        refreshHistory()
       } catch (e) {
         setSubmitError((e as Error).message)
       } finally {
         setSubmitting(false)
       }
     },
-    [apiKey, poll, stopPolling],
+    [apiKey, poll, stopPolling, refreshHistory],
   )
+
+  const onOpenHistory = useCallback(
+    async (jobId: number) => {
+      try {
+        setSample(false)
+        setJob(await getForecast(apiKey, jobId))
+      } catch (e) {
+        setSubmitError((e as Error).message)
+      }
+    },
+    [apiKey],
+  )
+
+  const onSample = useCallback(() => {
+    goRoute('sample')
+    applyRoute('sample')
+  }, [applyRoute])
 
   const onReset = useCallback(() => {
     stopPolling()
     setJob(null)
+    setSample(false)
     setSubmitError(null)
     saveActiveJob(null)
-  }, [stopPolling])
+    goRoute('console')
+    applyRoute('console')
+  }, [stopPolling, applyRoute])
 
-  const showResult = job?.status === 'completed' && job.result
+  const showResult = (job?.status === 'completed' || sample) && job?.result
+  const showTimeline =
+    job && !showResult && (job.status === 'queued' || job.status === 'running' || job.status === 'failed')
+
+  const navTo = useCallback(
+    (v: 'landing' | 'app') => {
+      const route: HashRoute = v === 'app' ? 'console' : ''
+      goRoute(route)
+      applyRoute(route)
+    },
+    [applyRoute],
+  )
 
   return (
-    <div className="page">
-      <header className="hero">
-        <h1>ForecastGPT</h1>
-        <p className="subtitle">
-          AI-generated quarterly outlook for Indian listed companies — grounded in real filings
-          from screener.in.
-        </p>
-      </header>
+    <div className="shell">
+      <Nav view={view} onNav={navTo} hasKey={apiKey.trim() !== ''} />
 
-      {companiesError && (
-        <div className="banner error">Could not reach the API: {companiesError}</div>
-      )}
+      {view === 'landing' ? (
+        <Landing stats={stats} onSample={onSample} onLaunch={() => navTo('app')} />
+      ) : (
+        <div className="console">
+          <div className="console-main">
+            {!showResult && (
+              <SubmitForm
+                apiKey={apiKey}
+                onApiKeyChange={setApiKey}
+                companies={companies}
+                defaultQuery={DEFAULT_QUERY}
+                submitting={submitting}
+                onSubmit={onSubmit}
+              />
+            )}
 
-      {!showResult && (
-        <SubmitForm
-          apiKey={apiKey}
-          onApiKeyChange={setApiKey}
-          companies={companies}
-          defaultQuery={DEFAULT_QUERY}
-          submitting={submitting}
-          onSubmit={onSubmit}
-        />
-      )}
+            {submitError && <div className="banner error fade-up">{submitError}</div>}
 
-      {submitError && <div className="banner error">{submitError}</div>}
+            {showTimeline && job && (
+              <JobTimeline job={job} startedAt={startedAt} onCancel={onReset} />
+            )}
 
-      {job && !showResult && (
-        <JobStatus job={job} onCancel={onReset} />
-      )}
+            {showResult && job?.result && (
+              <ResultView job={job} result={job.result} sample={sample} onReset={onReset} />
+            )}
+          </div>
 
-      {showResult && (
-        <ResultView job={job!} result={job!.result!} onReset={onReset} />
+          <HistoryPanel
+            summaries={history}
+            loading={historyLoading}
+            activeJobId={job?.job_id ?? null}
+            onOpen={onOpenHistory}
+            onRefresh={refreshHistory}
+          />
+        </div>
       )}
 
       <footer className="footer">
-        Same public API developers use: <code>POST /forecasts</code> · <code>GET /forecasts/&#123;id&#125;</code>
+        <span>
+          ForecastGPT · grounded in <a href="https://www.screener.in">screener.in</a> filings
+        </span>
+        <span className="faint">
+          Same public API developers use: <code>POST /forecasts</code> · <code>GET /forecasts/&#123;id&#125;</code>
+        </span>
       </footer>
     </div>
   )
