@@ -4,6 +4,8 @@
 ForecastGPT is an end-to-end AI system designed to analyze real quarterly financial reports and earnings call transcripts, extract key financial insights, and generate qualitative next-quarter forecasts using **Ollama + LLaMA models**, **FAISS-based RAG**, and **FastAPI**.  
 Built with production-like architecture — featuring PDF processing, vector embeddings, local LLM inference, caching, and MySQL logging.
 
+> 📚 **Docs**: [docs/how_to_run.md](docs/how_to_run.md) — step-by-step setup from a fresh clone, plus a guide to going live on free services (hosting, free LLM APIs, database).
+
 ---
 
 ## 🎯 Scope

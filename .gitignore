@@ -40,6 +40,9 @@ all_links.txt
 # --- Original task assignment docs (local only) ---
 task/
 
+# --- Living project context (local only) ---
+docs/CONTEXT.md
+
 # --- Local agent/session files ---
 .zcode/
 
