@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL: str = "nomic-embed-text"
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OPENAI_API_KEY: str = ""
+    # Optional override for OpenAI-compatible APIs (Google Gemini, Groq,
+    # OpenRouter, ...). Leave empty for real OpenAI.
+    OPENAI_BASE_URL: str = ""
     ANTHROPIC_API_KEY: str = ""
 
     # Job queue (RQ/Redis) for async forecast execution

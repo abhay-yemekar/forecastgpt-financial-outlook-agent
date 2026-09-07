@@ -42,18 +42,34 @@ class OllamaProvider:
 class OpenAIProvider:
     name = "openai"
 
+    @staticmethod
+    def _kwargs():
+        kw = {}
+        if settings.OPENAI_BASE_URL:
+            kw["base_url"] = settings.OPENAI_BASE_URL
+        return kw
+
     def get_chat_model(self, **kwargs):
         if not settings.OPENAI_API_KEY:
             raise RuntimeError("OPENAI_API_KEY is not set; export it to use the openai provider.")
         mod = _require("langchain_openai", "langchain-openai")
         kwargs.setdefault("temperature", 0.2)
-        return mod.ChatOpenAI(model=settings.LLM_MODEL, api_key=settings.OPENAI_API_KEY, **kwargs)
+        return mod.ChatOpenAI(
+            model=settings.LLM_MODEL,
+            api_key=settings.OPENAI_API_KEY,
+            **self._kwargs(),
+            **kwargs,
+        )
 
     def get_embedding_model(self):
         if not settings.OPENAI_API_KEY:
             raise RuntimeError("OPENAI_API_KEY is not set; export it to use the openai provider.")
         mod = _require("langchain_openai", "langchain-openai")
-        return mod.OpenAIEmbeddings(model=settings.EMBEDDING_MODEL, api_key=settings.OPENAI_API_KEY)
+        return mod.OpenAIEmbeddings(
+            model=settings.EMBEDDING_MODEL,
+            api_key=settings.OPENAI_API_KEY,
+            **self._kwargs(),
+        )
 
 
 class AnthropicProvider:
