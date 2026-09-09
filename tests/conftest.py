@@ -11,6 +11,12 @@ from pathlib import Path
 _TMP = Path(tempfile.mkdtemp(prefix="forecastgpt_tests_"))
 os.environ["DATABASE_URL"] = f"sqlite:///{(_TMP / 'test.db').as_posix()}"
 os.environ["DATA_DIR"] = str(_TMP / "data")
+# Deterministic provider settings: a developer's local .env (e.g. a cloud
+# LLM key) must not change test expectations like model_used.
+os.environ["LLM_PROVIDER"] = "ollama"
+os.environ["EMBEDDING_PROVIDER"] = "ollama"
+os.environ["LLM_MODEL"] = "llama3.2"
+os.environ["EMBEDDING_MODEL"] = "nomic-embed-text"
 
 import fakeredis  # noqa: E402
 import pytest  # noqa: E402

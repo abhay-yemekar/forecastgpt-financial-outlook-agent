@@ -10,3 +10,6 @@ ignore = ["E501", "B008"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Make the `app` package importable when pytest runs as a bare binary
+# (python -m pytest adds CWD; CI's plain `pytest` does not).
+pythonpath = ["."]

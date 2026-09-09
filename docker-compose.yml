@@ -1,8 +1,14 @@
 services:
   redis:
     image: redis:7-alpine
+    # Project-unique name so this redis can never be confused with any other
+    # redis container on the host.
+    container_name: forecastgpt-redis
+    # Host port is configurable and deliberately defaults to 6380 — 6379 is
+    # commonly already bound by other local services. Inside the compose
+    # network it is always plain 6379.
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6380}:6379"
 
   # Full local stack: `docker compose up --build api worker`
   # (add `--profile mysql` for a prod-like MySQL instead of the SQLite fallback).
