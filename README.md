@@ -176,24 +176,38 @@ source .venv/bin/activate   # Windows: .venv\Scripts\activate
 ```
 pip install -r requirements.txt
 ```
+Dependencies are split: `requirements.txt` is the runtime set; `requirements-dev.txt` adds only test/lint tooling (pytest, httpx, ruff, fakeredis) and includes the runtime file.
 
-### 4️⃣ Install Ollama
+### 4️⃣ Configure environment
+```
+cp .env.example .env   # then edit if needed
+```
+> **This project never assumes port 6379 is free.** Set `REDIS_PORT` in `.env` to any free port on your machine — checked-in default is **6380**, chosen specifically because 6379 is commonly already in use by other local services. Keep `REDIS_URL` in sync with it.
+
+Before starting anything, sanity-check your setup:
+```
+bash scripts/check-env.sh     # required keys, provider names, no tracked secrets
+bash scripts/check-ports.sh   # is REDIS_PORT actually free? (never touches other containers)
+```
+Windows: `powershell -ExecutionPolicy Bypass -File scripts/check-ports.ps1`
+
+### 5️⃣ Install Ollama
 https://ollama.com/download
 
-### 5️⃣ Pull LLaMA model
+### 6️⃣ Pull LLaMA model
 ```
 ollama pull llama3.2
 ```
 
-### 6️⃣ Start Redis + the worker + the API
+### 7️⃣ Start Redis + the worker + the API
 ```
-docker compose up -d redis        # Redis for the job queue
+docker compose up -d redis        # Redis for the job queue (only supported way — never `docker run`)
 python -m app.worker              # RQ worker (terminal 1)
 uvicorn app.main:app --reload     # API (terminal 2)
 ```
-`REDIS_URL` (default `redis://localhost:6379/0`) points both processes at your Redis.
+`REDIS_URL` (repo default `redis://localhost:6380/0`) points both processes at your Redis; it must match `REDIS_PORT`.
 
-### 7️⃣ (Optional) Run tests & lint
+### 8️⃣ (Optional) Run tests & lint
 ```
 pip install -r requirements-dev.txt
 pytest

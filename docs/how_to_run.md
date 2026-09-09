@@ -37,6 +37,21 @@ Copy the env template and adjust if needed (defaults work out of the box):
 cp .env.example .env
 ```
 
+> **This project never assumes port 6379 is free.** Set `REDIS_PORT` in `.env`
+> to any free port on your machine — the checked-in default is **6380**,
+> chosen specifically because 6379 is commonly already in use by other local
+> services. Keep `REDIS_URL` in sync with it.
+
+Then sanity-check before starting anything:
+
+```bash
+bash scripts/check-env.sh     # required keys, provider names, no tracked secrets
+bash scripts/check-ports.sh   # is REDIS_PORT actually free? (Windows: scripts\check-ports.ps1)
+```
+The port script reports *which* container/process holds a busy port and tells
+you to bump `REDIS_PORT` in `.env` — it never suggests stopping anything that
+belongs to another project.
+
 Key settings in `.env`:
 
 | Var | Default | Meaning |
@@ -44,7 +59,8 @@ Key settings in `.env`:
 | `LLM_PROVIDER` / `EMBEDDING_PROVIDER` | `ollama` | `ollama`, `openai`, or `anthropic` |
 | `LLM_MODEL` | `llama3.2` | Model name for the chosen provider |
 | `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama daemon |
-| `REDIS_URL` | `redis://localhost:6379/0` | Job queue. Use `6380` if another Redis owns 6379 |
+| `REDIS_PORT` | `6380` | Host port for the compose Redis (never assume 6379) |
+| `REDIS_URL` | `redis://localhost:6380/0` | Job queue — keep in sync with `REDIS_PORT` |
 | `DATABASE_URL` | *(empty)* | Force an engine. Empty = MySQL, then SQLite fallback |
 | `ALLOW_SQLITE_FALLBACK` | `true` | `false` = refuse to start without MySQL |
 | `RATE_LIMIT_PER_MINUTE` | `10` | POST /forecasts budget per API key |
@@ -53,15 +69,18 @@ Key settings in `.env`:
 ## 2. Start the supporting services
 
 ```bash
-# Redis — the job queue. IMPORTANT: if port 6379 is already used by another
-# project (check: netstat -an | findstr 6379), run on 6380 instead and set
-# REDIS_URL=redis://localhost:6380/0 everywhere below.
-docker run -d --name forecastgpt-redis -p 6379:6379 redis:7-alpine
+# Redis — the job queue. docker-compose is the ONLY supported way to start
+# dependencies: manual `docker run` creates untracked containers that compose
+# can't see or update, which causes port/name confusion later.
+docker compose up -d redis
 
 # Ollama models (first time only; ~2.3 GB)
 ollama pull llama3.2
 ollama pull nomic-embed-text
 ```
+
+The compose Redis container is named `forecastgpt-redis` and publishes
+`${REDIS_PORT:-6380} -> 6379`. Verify: `docker ps --filter name=forecastgpt-redis`.
 
 Ollama itself runs as a background app (it auto-starts on Windows). Verify:
 `curl http://localhost:11434/api/tags`
@@ -78,11 +97,11 @@ python -m app.cli key create --email you@example.com --password your-secret
 
 ```bash
 # Terminal 1 — worker (executes forecasts)
-export REDIS_URL=redis://localhost:6379/0        # 6380 if that's your port
+export REDIS_URL=redis://localhost:6380/0        # match REDIS_PORT in .env
 python -m app.worker
 
 # Terminal 2 — API + web console
-export REDIS_URL=redis://localhost:6379/0
+export REDIS_URL=redis://localhost:6380/0
 uvicorn app.main:app --reload
 
 # Terminal 3 (optional) — frontend live-reload during development

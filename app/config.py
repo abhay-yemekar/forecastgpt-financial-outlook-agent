@@ -23,8 +23,11 @@ class Settings(BaseSettings):
     OPENAI_BASE_URL: str = ""
     ANTHROPIC_API_KEY: str = ""
 
-    # Job queue (RQ/Redis) for async forecast execution
-    REDIS_URL: str = "redis://localhost:6379/0"
+    # Job queue (RQ/Redis) for async forecast execution.
+    # Repo convention: 6380, NOT the redis default 6379 — 6379 is commonly
+    # already bound by other services on dev machines. Keep in sync with
+    # REDIS_PORT in .env / docker-compose.
+    REDIS_URL: str = "redis://localhost:6380/0"
 
     # API access: requests per minute per API key (fixed window, 0 disables).
     # Submissions are expensive; cheap status reads get their own, larger
