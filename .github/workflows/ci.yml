@@ -47,3 +47,16 @@ jobs:
 
       - name: Type-check and build
         run: npm run build
+
+  compose-build:
+    # Sanity check: the shipped Dockerfile/compose must always build, so a
+    # broken image never surprises a deploy or a fresh `docker compose up`.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate compose file
+        run: docker compose config --quiet
+
+      - name: Build api + worker images
+        run: docker compose build api worker
