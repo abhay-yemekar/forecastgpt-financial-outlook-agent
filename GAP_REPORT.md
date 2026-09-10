@@ -1,11 +1,12 @@
 # GAP_REPORT — Part A hardening & Part C productization audit
 
 **Audited:** 2026-09-09 · branch `chore/ci-and-gap-report` · base `6345e91` (PR #1 merged)
+**Phase 2 verification:** 2026-09-09 · branch `chore/verify-gap-findings` · base `31c3242` (PR #2 merged) — see the results section at the bottom.
 **Scope:** the roadmap doc's Part A (environment hardening) and Part C
 (strategic decisions C1–C5), plus anything found along the way.
 **Method:** every finding below cites file/line evidence gathered from the
-actual tree; Phase 2 (`chore/verify-gap-findings`) re-verifies each one
-independently before any fix work starts.
+actual tree; Phase 2 re-verified each one independently before any fix
+work starts.
 
 ---
 
@@ -147,3 +148,32 @@ phase · **P2** quality/positioning, no immediate breakage.
 1. **Now:** GAP-04 (compose env passthrough — tiny, unblocks free-cloud deploys), GAP-06/GAP-07 (port hygiene completion).
 2. **With C2 decision:** GAP-01 + key model (Phase 5), then GAP-02 (SSRF) before any public key distribution.
 3. **Product phase:** GAP-03 + GAP-05 (upload pipeline), GAP-08 (positioning), GAP-09 (DEPLOY.md).
+
+---
+
+## Phase 2 — Verification results (2026-09-09, `chore/verify-gap-findings`)
+
+Every finding was re-checked against the merged tree (`31c3242`) with fresh
+evidence; the two behavioral ones (GAP-02, GAP-03) were verified **live** by
+running the stack, not just by reading code.
+
+| ID | Verdict | Evidence on re-check |
+|---|---|---|
+| GAP-01 | ✅ VERIFIED | Only `require_api_key` guards forecast routes; no login/session/OAuth endpoint exists anywhere in `app/` (greps for login/session/oauth hit nothing but SQLAlchemy's `Session` class) |
+| GAP-02 | ✅ VERIFIED — **live** | Ran api+worker against compose Redis; submitted a forecast with `financial_doc_urls=["http://127.0.0.1:9/ssrf-probe"]`. The worker made the outbound request to the internal loopback address (`HTTPConnectionPool(host='127.0.0.1', port=9)` in job #9's error) — no scheme/host/IP validation whatsoever |
+| GAP-03 | ✅ VERIFIED — **live, worse than reported** | Fed the extractor USD-style filing text ("Total revenues were $4,913 million … operating margin was 21.4 percent"): it returned `total_revenue_inr_cr='4,913'` — mislabeling **millions as ₹ crore (a ~78× unit error)** — and missed profit and margin entirely. Arbitrary uploads would produce confidently wrong numbers, not just misses. Raises the priority of unit-awareness in the C3 pipeline |
+| GAP-04 | ✅ VERIFIED | `OPENAI_BASE_URL` / `RATE_LIMIT_*` absent from `docker-compose.yml` **and** from the resolved `docker compose config` output |
+| GAP-05 | ✅ VERIFIED | `SEED_COMPANIES` = exactly 10 symbols (TCS, INFY, HCLTECH, WIPRO, HDFCBANK, ICICIBANK, SBIN, RELIANCE, ITC, LT); no company-creation endpoint or CLI command exists |
+| GAP-06 | ✅ VERIFIED | mysql service `ports: - "3306:3306"` hardcoded, no `${...}` indirection (unlike the Redis service) |
+| GAP-07 | ✅ VERIFIED | Both scripts branch on a single port sourced from `REDIS_PORT` only; no API/MySQL port checks |
+| GAP-08 | ✅ VERIFIED | README still titled "AI-Powered Financial Outlook Agent"; "report, not dashboard" appears nowhere in README or `web/src/components/Landing.tsx` |
+| GAP-09 | ✅ VERIFIED | `docs/` contains only `how_to_run.md` (+ local CONTEXT.md); no `DEPLOY.md` |
+| GAP-10 | ✅ VERIFIED (already fixed) | `compose-build` job present at `.github/workflows/ci.yml:51` building api+worker |
+
+**Corrections to the original report:** none — all ten findings held up.
+One severity amendment: **GAP-03 upgraded** from "wrong or missing numbers"
+to "wrong numbers presented with confidence" (unit confusion), so the C3
+extraction pipeline must include unit/currency normalization and sanity
+bounds, not just table-aware parsing. **GAP-02's SSRF proof also upgrades
+urgency**: it is reachable today by any API-key holder, so it should ship
+with (or before) Phase 5's key distribution, not after.
