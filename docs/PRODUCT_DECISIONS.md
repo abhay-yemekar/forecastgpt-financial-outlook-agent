@@ -53,8 +53,9 @@ Phase 5 (`feat/auth-and-key-model`) is blocked on this.
   via `pdfplumber`-with-table-awareness or `unstructured`, capped per
   free-tier user (e.g. ≤10 files, ≤20 MB each).
 - **Verified constraint (Phase 2):** GAP-03's live probe showed the current
-  regex extractor mislabels "$4,913 million" as "4,913 ₹ crore" — a ~78×
-  unit error. The pipeline **must** include unit/currency normalization and
+  regex extractor mislabels "$4,913 million" as "4,913 ₹ crore" — the true
+  figure is ≈ ₹40,800 crore at ₹83/$, an ~8× understatement with no error
+  signal. The pipeline **must** include unit/currency normalization and
   sanity bounds (e.g. reject revenue jumps >10× between quarters unless a
   second document confirms) before any upload path goes live.
 - **Today's reality:** curated registry of 10 NSE names, no creation path
