@@ -1,25 +1,36 @@
 #!/usr/bin/env bash
-# check-ports.sh — verify the host ports ForecastGPT wants are actually free.
+# check-ports.sh — verify the host ports ForecastGPT's compose stack wants
+# are actually free.
 #
-# Reads REDIS_PORT from .env (default 6380 — this repo never assumes 6379).
-# If a port is already bound, it reports WHICH container/process holds it and
-# tells you to bump REDIS_PORT in .env. It NEVER suggests stopping, restarting,
-# or reusing a container it does not recognize.
+# Ports checked (read from .env, all overridable in the environment):
+#   REDIS_PORT       (default 6380)  — REQUIRED: the job queue.
+#   API_PORT         (default 8000)  — REQUIRED: the compose api service.
+#   MYSQL_HOST_PORT  (default 3306)  — WARNING ONLY: needed solely when the
+#                                      optional `--profile mysql` service is
+#                                      used; a busy 3306 does not stop the
+#                                      app (SQLite fallback / remote DB).
+#
+# If a required port is bound, the script reports WHICH container/process
+# holds it and says to bump the matching var in .env. It NEVER suggests
+# stopping, restarting, or reusing a container it does not recognize.
 #
 # Usage: bash scripts/check-ports.sh
 set -uo pipefail
 
-PORT="${REDIS_PORT:-}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Load REDIS_PORT from .env if not already in the environment
-if [ -z "$PORT" ] && [ -f "$SCRIPT_DIR/../.env" ]; then
-  PORT="$(grep -E '^REDIS_PORT=' "$SCRIPT_DIR/../.env" | tail -1 | cut -d= -f2 | tr -d '[:space:]')"
+# Load port vars from .env if not already in the environment
+if [ -f "$SCRIPT_DIR/../.env" ]; then
+  while IFS='=' read -r k v; do
+    k="$(echo "$k" | tr -d '[:space:]')"
+    case "$k" in
+      REDIS_PORT|API_PORT|MYSQL_HOST_PORT)
+        eval "val=\"\${$k:-}\""
+        [ -z "$val" ] && export "$k=$(echo "$v" | tr -d '[:space:]')"
+        ;;
+    esac
+  done < <(grep -E '^(REDIS_PORT|API_PORT|MYSQL_HOST_PORT)=' "$SCRIPT_DIR/../.env")
 fi
-PORT="${PORT:-6380}"
-
-echo "Checking host port(s) for ForecastGPT dependencies..."
-echo "  REDIS_PORT = $PORT"
 
 fail=0
 
@@ -27,13 +38,13 @@ fail=0
 port_bound() {
   # Windows (netstat), then Linux (ss), then macOS (lsof) fallbacks
   if command -v netstat >/dev/null 2>&1; then
-    netstat -an 2>/dev/null | grep -E "[:.]${PORT}[[:space:]]" | grep -qiE 'LISTEN' && return 0
+    netstat -an 2>/dev/null | grep -E "[:.]$1[[:space:]]" | grep -qiE 'LISTEN' && return 0
   fi
   if command -v ss >/dev/null 2>&1; then
-    ss -ltn 2>/dev/null | grep -q ":${PORT} " && return 0
+    ss -ltn 2>/dev/null | grep -q ":$1 " && return 0
   fi
   if command -v lsof >/dev/null 2>&1; then
-    lsof -iTCP:"$PORT" -sTCP:LISTEN >/dev/null 2>&1 && return 0
+    lsof -iTCP:"$1" -sTCP:LISTEN >/dev/null 2>&1 && return 0
   fi
   return 1
 }
@@ -42,7 +53,7 @@ port_bound() {
 owner_of_port() {
   # Prefer docker's own view: any container publishing this host port?
   local holder
-  holder="$(docker ps --filter "publish=${PORT}" --format '{{.Names}} ({{.Image}}, {{.Ports}})' 2>/dev/null | head -3)"
+  holder="$(docker ps --filter "publish=$1" --format '{{.Names}} ({{.Image}}, {{.Ports}})' 2>/dev/null | head -3)"
   if [ -n "$holder" ]; then
     echo "$holder"
     return
@@ -50,9 +61,9 @@ owner_of_port() {
   # Fall back to the OS: PID -> process name (best effort)
   local pid=""
   if command -v netstat >/dev/null 2>&1; then
-    pid="$(netstat -ano 2>/dev/null | grep -E "[:.]${PORT}[[:space:]]" | grep -i listening | awk '{print $NF}' | head -1)"
+    pid="$(netstat -ano 2>/dev/null | grep -E "[:.]$1[[:space:]]" | grep -i listening | awk '{print $NF}' | head -1)"
   elif command -v ss >/dev/null 2>&1; then
-    pid="$(ss -ltnp 2>/dev/null | grep ":${PORT} " | grep -oE 'pid=[0-9]+' | head -1 | cut -d= -f2)"
+    pid="$(ss -ltnp 2>/dev/null | grep ":$1 " | grep -oE 'pid=[0-9]+' | head -1 | cut -d= -f2)"
   fi
   if [ -n "$pid" ]; then
     local pname
@@ -64,24 +75,35 @@ owner_of_port() {
   fi
 }
 
-# --- check -------------------------------------------------------------------
-if port_bound; then
-  echo ""
-  echo "  PORT $PORT IS ALREADY IN USE by:"
-  echo "    $(owner_of_port)"
-  echo ""
-  echo "  ACTION: bump REDIS_PORT in .env to any free port (e.g. $((PORT + 1)))"
-  echo "          and keep REDIS_URL in sync (redis://localhost:<port>/0)."
-  echo "  NOTE: do not stop or reuse the existing container/process — it may"
-  echo "        belong to another project on this machine."
-  fail=1
-else
-  echo "  port $PORT: free"
-fi
+# --- check one port: name, var, port, mode (required|optional) ----------------
+check_port() {
+  local name="$1" var="$2" port="$3" mode="$4"
+  if port_bound "$port"; then
+    echo "  $name (port $port): IN USE by:"
+    echo "      $(owner_of_port "$port")"
+    if [ "$mode" = "required" ]; then
+      echo "    ACTION: bump $var in .env to any free port and keep dependent"
+      echo "            settings (e.g. REDIS_URL) in sync."
+      echo "    NOTE: do not stop or reuse the existing container/process — it"
+      echo "          may belong to another project on this machine."
+      fail=1
+    else
+      echo "    WARNING: only matters if you run 'docker compose --profile mysql'."
+      echo "             If you do, bump $var in .env first. Not stopping the app."
+    fi
+  else
+    echo "  $name (port $port): free"
+  fi
+}
+
+echo "Checking host port(s) for ForecastGPT dependencies..."
+check_port "Redis (job queue)"   REDIS_PORT      "${REDIS_PORT:-6380}"      required
+check_port "API service"         API_PORT        "${API_PORT:-8000}"        required
+check_port "MySQL (opt profile)" MYSQL_HOST_PORT "${MYSQL_HOST_PORT:-3306}" optional
 
 echo ""
 if [ "$fail" -eq 0 ]; then
-  echo "OK — all ForecastGPT dependency ports are free."
+  echo "OK — all required ForecastGPT dependency ports are free."
 else
   echo "FAILED — resolve the conflict(s) above (change OUR port, not theirs)."
 fi
