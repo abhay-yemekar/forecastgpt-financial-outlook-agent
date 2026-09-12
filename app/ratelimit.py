@@ -19,9 +19,10 @@ log = get_logger("ratelimit")
 WINDOW_SECONDS = 60
 
 
-def enforce_rate_limit(api_key_id: int, bucket: str = "post") -> None:
-    """Raise HTTP 429 once this key exceeds its bucket limit in the current
-    window. Set the matching env to 0 to disable a bucket (e.g. in tests)."""
+def enforce_rate_limit(subject: str | int, bucket: str = "post") -> None:
+    """Raise HTTP 429 once this subject (api-key:<id> or user:<sub>) exceeds
+    its bucket limit in the current window. Set the matching env to 0 to
+    disable a bucket (e.g. in tests)."""
     limit = (
         settings.RATE_LIMIT_PER_MINUTE
         if bucket == "post"
@@ -32,14 +33,14 @@ def enforce_rate_limit(api_key_id: int, bucket: str = "post") -> None:
 
     client = Redis.from_url(settings.REDIS_URL)
     window = int(time.time()) // WINDOW_SECONDS
-    redis_key = f"ratelimit:{bucket}:{api_key_id}:{window}"
+    redis_key = f"ratelimit:{bucket}:{subject}:{window}"
     count = client.incr(redis_key)
     if count == 1:
         client.expire(redis_key, WINDOW_SECONDS + 1)
 
     if count > limit:
         retry_after = WINDOW_SECONDS - (int(time.time()) % WINDOW_SECONDS)
-        log.warning(f"Rate limit hit for api_key id={api_key_id} bucket={bucket} ({count}/{limit}).")
+        log.warning(f"Rate limit hit for subject {subject} bucket={bucket} ({count}/{limit}).")
         raise HTTPException(
             status_code=429,
             detail=f"Rate limit exceeded: max {limit} requests per minute per API key.",

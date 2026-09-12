@@ -40,6 +40,7 @@ class ForecastLog(Base):
     __tablename__ = "forecast_logs"
     id = Column(Integer, primary_key=True, index=True)
     company = Column(String(16), nullable=True, index=True)  # NSE symbol of the subject company
+    owner_id = Column(String(64), nullable=True, index=True)  # Supabase sub for console users; NULL = operator/api-key
     query = Column(Text, nullable=False)
     status = Column(String(16), nullable=False, default="queued", index=True)  # queued|running|completed|failed
     error = Column(Text, nullable=True)

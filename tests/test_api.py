@@ -28,10 +28,10 @@ def test_unknown_company_rejected_before_enqueue(client, monkeypatch, auth_heade
 def test_create_forecast_returns_202_and_creates_queued_row(client, monkeypatch, auth_headers):
     captured = {}
 
-    def fake_enqueue(row_id, symbol, slug, name, query, fin_urls, tr_urls):
+    def fake_enqueue(row_id, symbol, slug, name, query, fin_urls, tr_urls, provider_key=None):
         captured.update(
             row_id=row_id, symbol=symbol, slug=slug, name=name, query=query,
-            fin_urls=fin_urls, tr_urls=tr_urls,
+            fin_urls=fin_urls, tr_urls=tr_urls, provider_key=provider_key,
         )
 
     monkeypatch.setattr("app.main.enqueue_forecast_job", fake_enqueue)
