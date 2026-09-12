@@ -12,16 +12,17 @@ work starts.
 
 ## Summary
 
-| Area | Status |
+| Area | Status (updated 2026-09-12, after PR #8–#11) |
 |---|---|
-| A1 Redis port isolation | ✅ done (PR #1) — 2 follow-ups below (GAP-06, GAP-07) |
+| A1 Redis port isolation | ✅ done (PR #1) — follow-ups GAP-06/GAP-07 **done** (PRs #6/#7 + #11) |
 | A2 Requirements split | ✅ done (PR #1) |
-| A3 Secrets hygiene | ✅ done (PR #1) — 1 follow-up below (GAP-04) |
-| C1 Supabase Auth | ❌ not started (GAP-01) |
-| C2 Key/cost model | ⏸ pending Abhay (recommendation: hybrid) |
-| C3 Custom company upload | ❌ not started (GAP-02, GAP-03) |
-| C4 "Report, not dashboard" positioning | ❌ not started (GAP-08) |
-| C5 Free-tier deploy stack | ❌ not started (self-host compose only) (GAP-09) |
+| A3 Secrets hygiene | ✅ done (PR #1) — GAP-04 **done** (PR #7) |
+| C1 Supabase Auth | ✅ **done** (PR #8): Supabase login (email+Google), JWKS verification (ES256/RS256 via PR #10), owner-scoped jobs |
+| C2 Key/cost model | ✅ **resolved: hybrid implemented** (PR #8) — per-user + global daily quotas, BYOK via X-Provider-Key |
+| C3 Custom company upload | ⏳ designed (GAP-03/05 + D-3); superseded in part by D-6 visual RAG — dedicated project |
+| C4 "Report, not dashboard" positioning | ✅ **done** (PRs #9/#11): README + landing copy |
+| C5 Free-tier deploy stack | ✅ documented (docs/DEPLOY.md, PR #9); execution = deployment step |
+| D-6 Visual RAG (ColPali) | 📐 designed (this branch); dedicated project after launch |
 
 Severity legend: **P0** breaks dev/deploy today · **P1** blocks a roadmap
 phase · **P2** quality/positioning, no immediate breakage.

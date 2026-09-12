@@ -90,7 +90,65 @@ Abhay confirmed the recommendation. Implemented in `feat/auth-and-key-model`:
 
 ---
 
+### D-6 · Visual-native RAG for investor decks (ColPali/ColQwen2) — **designed, not started; dedicated project after launch**
+
+**The problem it solves.** Our own audit proved the gap (GAP-03 + the live
+probe): investor decks are waterfalls, dual-axis graphs, KPI tiles and
+multi-column tables — exactly where text-extraction-then-retrieve quietly
+fails. A revenue figure inside a bar chart is invisible to any pipeline that
+only ever sees extracted text. Today we partially compensate with regex +
+bare-number fallbacks; that is a patch, not a solution.
+
+**The approach (no OCR — that's the thesis).**
+1. **Ingest** — pull quarterly investor-presentation PDFs for 30–50 NSE-listed
+   companies (our registry + screener.in/exchange filings). Rasterize every
+   page to an image at fixed DPI (PyMuPDF). Store page images with metadata:
+   company, quarter, page number, source URL.
+2. **Visual index** — ColPali/ColQwen2 multi-vector (patch-level) embeddings
+   per page image (`colpali-engine`), indexed in **Qdrant** (native
+   late-interaction/MaxSim support). Retrieval scores a query against image
+   patches directly.
+3. **Honest baseline** — the conventional pipeline over the same decks:
+   text layer (PyMuPDF) or Tesseract → chunk → text embeddings → same
+   retrieval. The comparison must be measured, not asserted.
+4. **Grounded generation** — top-k retrieved page *images* go to a vision
+   model (Claude Sonnet vision, or self-hosted Qwen2-VL-7B) which answers
+   citing what is actually drawn: number + company + quarter + page.
+5. **Numeric hallucination gate** — hand-verify a ground-truth set of key
+   figures (revenue, EBITDA margin, YoY growth) per company; every numeric
+   claim in a generated answer is cross-checked against it. Factuality gate,
+   not a nice-to-have.
+6. **Eval harness** — 60–80 hand-written questions stratified by what the
+   answer requires: a chart, a table, or plain text. Run both pipelines;
+   report accuracy **split by question type**, never one blended number.
+
+**Ship gates.**
+- 60+ eval questions across 30+ companies' latest decks
+- Visual retrieval beats the OCR+text baseline by a stated margin
+  **specifically on chart-grounded questions** (reported split out)
+- Every answer cites a page image and passes the ground-truth check
+- p95 latency reported
+
+**Traps (from the original brief, kept verbatim in spirit).**
+- Do NOT quietly fall back to OCR when the VLM struggles with a hard chart —
+  that defeats the thesis.
+- Do NOT cherry-pick easy charts for the eval set: include stacked bars,
+  dual axes, and footnoted percentages, or the comparison proves nothing.
+
+**Integration with ForecastGPT.** The companies registry (D-3/GAP-05),
+async job pipeline, and report JSON are the substrate: visual retrieval
+becomes a second retrieval source alongside transcript RAG; the report
+gains a "deck evidence" section citing page images.
+
+**Scope honesty.** This is a multi-session project: GPU or hosted-inference
+decision (ColQwen2-7B self-hosted vs hosted VLM), Qdrant infra, the eval
+corpus build, and both pipelines. Kick off as its own dedicated effort
+**after** the product is deployed and live.
+
+---
+
 ## Part 2 — Prioritization
+
 
 ### P0 — breaks dev/deploy today (ship before anything else)
 *Source: Part A follow-ups + compose defects found in the audit. All tiny.*
