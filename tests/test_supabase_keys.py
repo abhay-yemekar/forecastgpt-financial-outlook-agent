@@ -73,14 +73,14 @@ def _auth(token: str) -> dict:
     return {"Authorization": f"Bearer {token}"}
 
 
-def test_valid_rs256_token_accepted(client, jwks_mode):
+def test_valid_rs256_token_accepted(client, jwks_mode, fake_redis):
     resp = client.get("/quota/me", headers=_auth(make_token()))
     assert resp.status_code == 200
     body = resp.json()
     assert body["kind"] == "user" and body["email"] == "u@example.com"
 
 
-def test_issuer_without_trailing_slash_also_accepted(client, jwks_mode):
+def test_issuer_without_trailing_slash_also_accepted(client, jwks_mode, fake_redis):
     token = make_token(iss=ISSUER + "/")
     assert client.get("/quota/me", headers=_auth(token)).status_code == 200
 
@@ -147,7 +147,7 @@ def test_jwks_mode_takes_precedence_over_legacy_secret(client, jwks_mode):
         settings.SUPABASE_JWT_SECRET = old
 
 
-def test_legacy_hs256_still_works_without_url(client, monkeypatch):
+def test_legacy_hs256_still_works_without_url(client, monkeypatch, fake_redis):
     monkeypatch.setattr(settings, "SUPABASE_URL", "")
     monkeypatch.setattr(settings, "SUPABASE_JWT_SECRET", SECRET)
     token = jwt.encode(
