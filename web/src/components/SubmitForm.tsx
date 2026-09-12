@@ -3,7 +3,10 @@ import type { Company } from '../types'
 
 interface Props {
   apiKey: string
-  onApiKeyChange: (key: string) => void
+  onApiKeyChange?: (key: string) => void
+  hideKeyField?: boolean
+  providerKey?: string
+  onProviderKeyChange?: (key: string) => void
   companies: Company[]
   defaultQuery: string
   submitting: boolean
@@ -35,6 +38,9 @@ function CopyButton({ text }: { text: string }) {
 export default function SubmitForm({
   apiKey,
   onApiKeyChange,
+  hideKeyField = false,
+  providerKey,
+  onProviderKeyChange,
   companies,
   defaultQuery,
   submitting,
@@ -44,36 +50,62 @@ export default function SubmitForm({
   const [query, setQuery] = useState(defaultQuery)
   const [showKey, setShowKey] = useState(false)
 
-  const ready = apiKey.trim() !== '' && company !== '' && query.trim() !== '' && !submitting
+  const ready =
+    (hideKeyField || apiKey.trim() !== '') &&
+    (hideKeyField || query.trim() !== '') &&
+    company !== '' &&
+    query.trim() !== '' &&
+    !submitting
+
+  const changeApiKey = (key: string) => onApiKeyChange?.(key)
 
   return (
     <section className="glass card form fade-up">
-      <label className="field">
-        <span>API key</span>
-        <div className="key-row">
+      {!hideKeyField && (
+        <label className="field">
+          <span>API key (developer mode)</span>
+          <div className="key-row">
+            <input
+              type={showKey ? 'text' : 'password'}
+              placeholder="fgpt_…"
+              value={apiKey}
+              onChange={(e) => changeApiKey(e.target.value)}
+              spellCheck={false}
+              className="mono"
+            />
+            <button type="button" className="ghost" onClick={() => setShowKey((s) => !s)}>
+              {showKey ? 'Hide' : 'Show'}
+            </button>
+          </div>
+          <details className="key-help">
+            <summary className="muted small">How do I get a key?</summary>
+            <p className="muted small">
+              Run this against your ForecastGPT instance, then paste the printed <code>fgpt_…</code> key:
+            </p>
+            <div className="code-row">
+              <code>{KEY_CLI}</code>
+              <CopyButton text={KEY_CLI} />
+            </div>
+          </details>
+        </label>
+      )}
+
+      {hideKeyField && onProviderKeyChange && (
+        <label className="field">
+          <span>Your own provider key (optional — bypasses the free quota)</span>
           <input
-            type={showKey ? 'text' : 'password'}
-            placeholder="fgpt_…"
-            value={apiKey}
-            onChange={(e) => onApiKeyChange(e.target.value)}
+            type="password"
+            placeholder="Paste a key for the server's LLM provider…"
+            value={providerKey ?? ''}
+            onChange={(e) => onProviderKeyChange(e.target.value)}
             spellCheck={false}
             className="mono"
           />
-          <button type="button" className="ghost" onClick={() => setShowKey((s) => !s)}>
-            {showKey ? 'Hide' : 'Show'}
-          </button>
-        </div>
-        <details className="key-help">
-          <summary className="muted small">How do I get a key?</summary>
-          <p className="muted small">
-            Run this against your ForecastGPT instance, then paste the printed <code>fgpt_…</code> key:
-          </p>
-          <div className="code-row">
-            <code>{KEY_CLI}</code>
-            <CopyButton text={KEY_CLI} />
-          </div>
-        </details>
-      </label>
+          <small className="muted">
+            Used for this browser's requests only — never stored server-side.
+          </small>
+        </label>
+      )}
 
       <label className="field">
         <span>Company</span>

@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { fetchCompanies, fetchStats, getForecast, listForecasts, submitForecast } from './api'
+import { fetchCompanies, fetchQuotaMe, fetchStats, getForecast, listForecasts, submitForecast, type Auth, type QuotaInfo } from './api'
+import { supabase } from './lib/supabase'
 import sampleJob from './data/sampleResult.json'
 import type { Company, Job, JobSummary, Stats } from './types'
+import AuthPanel, { type SessionInfo } from './components/AuthPanel'
 import Landing from './components/Landing'
 import Nav from './components/Nav'
 import SubmitForm from './components/SubmitForm'
@@ -23,7 +25,6 @@ function currentRoute(): HashRoute {
 }
 
 function goRoute(route: HashRoute) {
-  // Keep the hash in sync so views are shareable and back/forward work.
   if (currentRoute() !== route) window.location.hash = route ? `#/${route}` : '#/'
 }
 
@@ -47,9 +48,12 @@ function saveActiveJob(job: { jobId: number; status: string } | null) {
 
 export default function App() {
   const [view, setView] = useState<'landing' | 'app'>('landing')
+  const [session, setSession] = useState<SessionInfo | null>(null)
   const [apiKey, setApiKey] = useState(() => localStorage.getItem(KEY_STORAGE) ?? '')
+  const [providerKey, setProviderKey] = useState(() => localStorage.getItem('fgpt_provider_key') ?? '')
   const [companies, setCompanies] = useState<Company[]>([])
   const [stats, setStats] = useState<Stats | null>(null)
+  const [quota, setQuota] = useState<QuotaInfo | null>(null)
   const [job, setJob] = useState<Job | null>(null)
   const [sample, setSample] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -59,6 +63,12 @@ export default function App() {
   const [historyLoading, setHistoryLoading] = useState(false)
   const timer = useRef<number | null>(null)
 
+  const auth: Auth | undefined = session
+    ? { token: session.token, providerKey: providerKey || undefined }
+    : apiKey.trim()
+      ? { apiKey, providerKey: providerKey || undefined }
+      : undefined
+
   useEffect(() => {
     fetchCompanies().then(setCompanies).catch(() => {})
     fetchStats().then(setStats).catch(() => {})
@@ -67,6 +77,26 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem(KEY_STORAGE, apiKey)
   }, [apiKey])
+
+  useEffect(() => {
+    localStorage.setItem('fgpt_provider_key', providerKey)
+  }, [providerKey])
+
+  // Supabase session lifecycle (no-op when auth isn't configured).
+  useEffect(() => {
+    if (!supabase) return
+    supabase.auth.getSession().then(({ data }) => {
+      const s = data.session
+      if (s?.user.email) {
+        setSession({ email: s.user.email, token: s.access_token })
+      }
+    })
+    const { data } = supabase.auth.onAuthStateChange((_event, s) => {
+      if (s?.user.email) setSession({ email: s.user.email, token: s.access_token })
+      else setSession(null)
+    })
+    return () => data.subscription.unsubscribe()
+  }, [])
 
   const stopPolling = useCallback(() => {
     if (timer.current !== null) {
@@ -96,10 +126,64 @@ export default function App() {
     [stopPolling],
   )
 
+  const refreshHistory = useCallback(async () => {
+    if (!auth) return
+    setHistoryLoading(true)
+    try {
+      setHistory(await listForecasts(auth))
+    } catch {
+      /* history is best-effort */
+    } finally {
+      setHistoryLoading(false)
+    }
+  }, [auth])
+
+  const refreshQuota = useCallback(async () => {
+    if (!auth) return
+    try {
+      setQuota(await fetchQuotaMe(auth))
+    } catch {
+      /* quota chip is best-effort */
+    }
+  }, [auth])
+
+  useEffect(() => {
+    if (auth) refreshQuota()
+  }, [auth, refreshQuota])
+
+  const poll = useCallback(
+    (jobId: number) => {
+      stopPolling()
+      timer.current = window.setInterval(async () => {
+        try {
+          const next = await getForecast(auth!, jobId)
+          setJob(next)
+          saveActiveJob(
+            next.status === 'completed' || next.status === 'failed'
+              ? null
+              : { jobId, status: next.status },
+          )
+          if (next.status === 'completed' || next.status === 'failed') {
+            stopPolling()
+            refreshHistory()
+            refreshQuota()
+          }
+        } catch (e) {
+          const err = e as Error & { status?: number }
+          if (err.status === 429) return
+          setSubmitError(err.message)
+          stopPolling()
+          saveActiveJob(null)
+        }
+      }, POLL_MS)
+    },
+    [auth, stopPolling, refreshHistory, refreshQuota],
+  )
+
   // Resume an in-flight job after a refresh, or honour the current route.
   useEffect(() => {
     const active = loadActiveJob()
-    if (active && localStorage.getItem(KEY_STORAGE)) {
+    if (active && (localStorage.getItem(KEY_STORAGE) || supabase)) {
       setView('app')
       setStartedAt(Date.now())
       setJob({ job_id: active.jobId, status: active.status as Job['status'] })
@@ -113,48 +197,8 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const refreshHistory = useCallback(async () => {
-    if (!apiKey.trim()) return
-    setHistoryLoading(true)
-    try {
-      setHistory(await listForecasts(apiKey))
-    } catch {
-      /* history is best-effort */
-    } finally {
-      setHistoryLoading(false)
-    }
-  }, [apiKey])
-
-  const poll = useCallback(
-    (jobId: number) => {
-      stopPolling()
-      timer.current = window.setInterval(async () => {
-        try {
-          const next = await getForecast(apiKey, jobId)
-          setJob(next)
-          saveActiveJob(
-            next.status === 'completed' || next.status === 'failed'
-              ? null
-              : { jobId, status: next.status },
-          )
-          if (next.status === 'completed' || next.status === 'failed') {
-            stopPolling()
-            refreshHistory()
-          }
-        } catch (e) {
-          const err = e as Error & { status?: number }
-          if (err.status === 429) return
-          setSubmitError(err.message)
-          stopPolling()
-          saveActiveJob(null)
-        }
-      }, POLL_MS)
-    },
-    [apiKey, stopPolling, refreshHistory],
-  )
-
   useEffect(() => {
-    if (view === 'app' && apiKey.trim()) refreshHistory()
+    if (view === 'app' && auth) refreshHistory()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view])
 
@@ -167,30 +211,31 @@ export default function App() {
       setJob(null)
       setStartedAt(Date.now())
       try {
-        const resp = await submitForecast(apiKey, { company, query })
+        const resp = await submitForecast(auth!, { company, query })
         setJob({ job_id: resp.job_id, status: resp.status })
         saveActiveJob({ jobId: resp.job_id, status: resp.status })
         poll(resp.job_id)
         refreshHistory()
+        refreshQuota()
       } catch (e) {
         setSubmitError((e as Error).message)
       } finally {
         setSubmitting(false)
       }
     },
-    [apiKey, poll, stopPolling, refreshHistory],
+    [auth, poll, stopPolling, refreshHistory, refreshQuota],
   )
 
   const onOpenHistory = useCallback(
     async (jobId: number) => {
       try {
         setSample(false)
-        setJob(await getForecast(apiKey, jobId))
+        setJob(await getForecast(auth!, jobId))
       } catch (e) {
         setSubmitError((e as Error).message)
       }
     },
-    [apiKey],
+    [auth],
   )
 
   const onSample = useCallback(() => {
@@ -208,10 +253,6 @@ export default function App() {
     applyRoute('console')
   }, [stopPolling, applyRoute])
 
-  const showResult = (job?.status === 'completed' || sample) && job?.result
-  const showTimeline =
-    job && !showResult && (job.status === 'queued' || job.status === 'running' || job.status === 'failed')
-
   const navTo = useCallback(
     (v: 'landing' | 'app') => {
       const route: HashRoute = v === 'app' ? 'console' : ''
@@ -221,9 +262,13 @@ export default function App() {
     [applyRoute],
   )
 
+  const showResult = (job?.status === 'completed' || sample) && job?.result
+  const showTimeline =
+    job && !showResult && (job.status === 'queued' || job.status === 'running' || job.status === 'failed')
+
   return (
     <div className="shell">
-      <Nav view={view} onNav={navTo} hasKey={apiKey.trim() !== ''} />
+      <Nav view={view} onNav={navTo} hasAuth={Boolean(session || apiKey.trim())} quota={quota} />
 
       {view === 'landing' ? (
         <Landing stats={stats} onSample={onSample} onLaunch={() => navTo('app')} />
@@ -231,14 +276,34 @@ export default function App() {
         <div className="console">
           <div className="console-main">
             {!showResult && (
-              <SubmitForm
-                apiKey={apiKey}
-                onApiKeyChange={setApiKey}
-                companies={companies}
-                defaultQuery={DEFAULT_QUERY}
-                submitting={submitting}
-                onSubmit={onSubmit}
-              />
+              <>
+                <section className="glass card fade-up">
+                  <AuthPanel session={session} onSession={setSession} />
+                </section>
+
+                {!session && (
+                  <SubmitForm
+                    apiKey={apiKey}
+                    onApiKeyChange={setApiKey}
+                    companies={companies}
+                    defaultQuery={DEFAULT_QUERY}
+                    submitting={submitting}
+                    onSubmit={onSubmit}
+                  />
+                )}
+                {session && (
+                  <SubmitForm
+                    apiKey=""
+                    hideKeyField
+                    providerKey={providerKey}
+                    onProviderKeyChange={setProviderKey}
+                    companies={companies}
+                    defaultQuery={DEFAULT_QUERY}
+                    submitting={submitting}
+                    onSubmit={onSubmit}
+                  />
+                )}
+              </>
             )}
 
             {submitError && <div className="banner error fade-up">{submitError}</div>}
