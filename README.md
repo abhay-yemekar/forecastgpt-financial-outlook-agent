@@ -169,7 +169,7 @@ python -m app.cli key create --email you@example.com --password 'secret'   # pri
 python -m app.cli key list --email you@example.com
 python -m app.cli key revoke --prefix fgpt_AbC123
 ```
-Rate limits per caller: `RATE_LIMIT_PER_MINUTE` (POST, 10/min) and `RATE_LIMIT_GET_PER_MINUTE` (status reads, 120/min) — `429` responses carry `Retry-After`. To enable console login, create a free Supabase project and set `SUPABASE_URL`/`SUPABASE_JWT_SECRET` (backend) + `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` (frontend, see `web/.env.example`) — see `docs/how_to_run.md`.
+Rate limits per caller: `RATE_LIMIT_PER_MINUTE` (POST, 10/min) and `RATE_LIMIT_GET_PER_MINUTE` (status reads, 120/min) — `429` responses carry `Retry-After`. To enable console login, create a free Supabase project and set `SUPABASE_URL` (backend) + `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` (frontend, see `web/.env.example`) — session tokens are verified against the project's public JWKS, so no secret is needed on current Supabase projects. See `docs/how_to_run.md`.
 
 ```bash
 curl -X POST http://localhost:8000/forecasts \

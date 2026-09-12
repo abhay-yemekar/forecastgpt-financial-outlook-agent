@@ -12,11 +12,15 @@ _TMP = Path(tempfile.mkdtemp(prefix="forecastgpt_tests_"))
 os.environ["DATABASE_URL"] = f"sqlite:///{(_TMP / 'test.db').as_posix()}"
 os.environ["DATA_DIR"] = str(_TMP / "data")
 # Deterministic provider settings: a developer's local .env (e.g. a cloud
-# LLM key) must not change test expectations like model_used.
+# LLM key or a real SUPABASE_URL) must not change test expectations.
 os.environ["LLM_PROVIDER"] = "ollama"
 os.environ["EMBEDDING_PROVIDER"] = "ollama"
 os.environ["LLM_MODEL"] = "llama3.2"
 os.environ["EMBEDDING_MODEL"] = "nomic-embed-text"
+# Tests exercise the legacy HS256 path by default; JWKS mode has its own
+# tests with a stubbed client (tests/test_supabase_keys.py).
+os.environ["SUPABASE_URL"] = ""
+os.environ["SUPABASE_JWT_SECRET"] = "test-jwt-secret-for-principal-auth"
 
 import fakeredis  # noqa: E402
 import pytest  # noqa: E402
