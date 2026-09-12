@@ -1,6 +1,8 @@
+import ipaddress
 import os
 import re
-from urllib.parse import urljoin
+import socket
+from urllib.parse import urljoin, urlparse
 
 import requests
 from bs4 import BeautifulSoup
@@ -10,6 +12,62 @@ from app.config import settings
 from .logger import get_logger
 
 log = get_logger("fetcher")
+
+# --- SSRF guardrails (GAP-02) -------------------------------------------------
+# User-supplied document URLs are fetched server-side, so downloads are
+# restricted to an allowlist of public financial-data hosts, redirected
+# re-validated, and size-capped. Private/loopback/link-local targets are
+# always refused regardless of the allowlist.
+ALLOWED_DOC_HOSTS = {
+    h.strip().lower()
+    for h in os.getenv(
+        "ALLOWED_DOC_HOSTS",
+        "screener.in,www.screener.in,bseindia.com,www.bseindia.com,"
+        "nseindia.com,www.nseindia.com,archives.nseindia.com",
+    ).split(",")
+    if h.strip()
+}
+MAX_DOWNLOAD_BYTES = 25 * 1024 * 1024  # 25 MB — filings/decks are far smaller
+MAX_REDIRECTS = 3
+
+
+class UnsafeUrlError(ValueError):
+    """Raised when a URL fails the SSRF guardrails."""
+
+
+def validate_url(url: str) -> str:
+    """Validate scheme + host allowlist + resolved IPs. Returns the url."""
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        raise UnsafeUrlError(f"only http/https URLs are allowed: {url!r}")
+    host = (parsed.hostname or "").lower()
+    if not host:
+        raise UnsafeUrlError(f"URL has no hostname: {url!r}")
+    # exact match or subdomain of an allowlisted host
+    if not any(host == h or host.endswith("." + h) for h in ALLOWED_DOC_HOSTS):
+        raise UnsafeUrlError(
+            f"host {host!r} is not an allowed document source "
+            f"(allowlist: {sorted(ALLOWED_DOC_HOSTS)}; set ALLOWED_DOC_HOSTS to extend)"
+        )
+    # Resolve and refuse private/loopback/link-local/reserved addresses
+    # (guards allowlisted-host DNS rebinding and literal-IP tricks).
+    try:
+        infos = socket.getaddrinfo(host, None)
+    except socket.gaierror as e:
+        raise UnsafeUrlError(f"could not resolve host {host!r}: {e}") from e
+    for info in infos:
+        ip = ipaddress.ip_address(info[4][0])
+        if (
+            ip.is_private
+            or ip.is_loopback
+            or ip.is_link_local
+            or ip.is_reserved
+            or ip.is_multicast
+            or ip.is_unspecified
+        ):
+            raise UnsafeUrlError(f"host {host!r} resolves to a non-public address ({ip})")
+    return url
+
 
 # Link classification for screener.in's #documents section. Text alone is not
 # enough anymore: quarterly numbers often sit in investor presentation decks
@@ -36,15 +94,42 @@ def screener_docs_url(screener_slug: str) -> str:
     return f"https://www.screener.in/company/{screener_slug}/consolidated/#documents"
 
 def _download(url: str, out_dir: str) -> str:
+    url = validate_url(url)
     os.makedirs(out_dir, exist_ok=True)
     filename = re.sub(r"[^\w\-.]+", "_", url.split("/")[-1]) or "doc.pdf"
     path = os.path.join(out_dir, filename)
     if os.path.exists(path) and os.path.getsize(path) > 0:
         return path
-    resp = requests.get(url, headers={"User-Agent": settings.USER_AGENT}, timeout=60)
+    # Manual redirect loop so every hop re-passes validate_url (a redirect
+    # from an allowlisted host to an internal address must be refused too).
+    current = url
+    for _ in range(MAX_REDIRECTS + 1):
+        current = validate_url(current)
+        resp = requests.get(
+            current, headers={"User-Agent": settings.USER_AGENT},
+            timeout=60, allow_redirects=False, stream=True,
+        )
+        if resp.is_redirect or resp.is_permanent_redirect:
+            nxt = urljoin(current, resp.headers.get("Location", ""))
+            resp.close()
+            current = nxt
+            continue
+        break
+    else:
+        raise UnsafeUrlError(f"too many redirects fetching {url!r}")
     resp.raise_for_status()
+
+    size = 0
     with open(path, "wb") as f:
-        f.write(resp.content)
+        for chunk in resp.iter_content(chunk_size=64 * 1024):
+            size += len(chunk)
+            if size > MAX_DOWNLOAD_BYTES:
+                f.close()
+                os.remove(path)
+                raise UnsafeUrlError(
+                    f"document at {url!r} exceeds the {MAX_DOWNLOAD_BYTES // (1024 * 1024)} MB cap"
+                )
+            f.write(chunk)
     log.info(f"Downloaded {url} -> {path}")
     return path
 
