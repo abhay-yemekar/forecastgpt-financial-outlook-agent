@@ -1,13 +1,31 @@
 import type { QuotaInfo } from '../api'
 
 interface Props {
-  view: 'landing' | 'app'
-  onNav: (view: 'landing' | 'app') => void
-  hasAuth: boolean
+  view: 'landing' | 'auth' | 'app'
+  onNav: (v: 'landing' | 'app' | 'auth') => void
   quota: QuotaInfo | null
+  signedInEmail: string | null
+  onSignOut: () => void
 }
 
-export default function Nav({ view, onNav, hasAuth, quota }: Props) {
+const SECTIONS = [
+  { id: 'problem', label: 'Why' },
+  { id: 'how', label: 'How it works' },
+  { id: 'sample', label: 'Sample' },
+  { id: 'developers', label: 'API' },
+  { id: 'faq', label: 'FAQ' },
+]
+
+export default function Nav({ view, onNav, quota, signedInEmail, onSignOut }: Props) {
+  const scrollTo = (id: string) => {
+    if (view !== 'landing') {
+      onNav('landing')
+      window.setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' }), 120)
+    } else {
+      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }
+
   return (
     <nav className="nav glass">
       <button className="nav-brand" onClick={() => onNav('landing')} aria-label="ForecastGPT home">
@@ -17,18 +35,17 @@ export default function Nav({ view, onNav, hasAuth, quota }: Props) {
         </span>
       </button>
 
+      {view === 'landing' && (
+        <div className="nav-links">
+          {SECTIONS.map((s) => (
+            <button key={s.id} className="nav-link-btn" onClick={() => scrollTo(s.id)}>
+              {s.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="nav-right">
-        <button className="ghost" onClick={() => onNav(view === 'landing' ? 'app' : 'landing')}>
-          {view === 'landing' ? 'Console' : 'Overview'}
-        </button>
-        <a
-          className="nav-link"
-          href="https://github.com/abhay-yemekar/forecastgpt-financial-outlook-agent"
-          target="_blank"
-          rel="noreferrer"
-        >
-          GitHub
-        </a>
         {quota?.quota === 'free_tier' && typeof quota.used === 'number' && typeof quota.limit === 'number' && (
           <span
             className={`chip key-chip ${quota.used >= quota.limit ? 'quota-out' : ''}`}
@@ -38,10 +55,30 @@ export default function Nav({ view, onNav, hasAuth, quota }: Props) {
             {quota.limit - quota.used} left today
           </span>
         )}
-        <span className={`chip key-chip ${hasAuth ? 'ok' : ''}`} title={hasAuth ? 'Signed in' : 'No API key — sample available'}>
-          <span className={`dot ${hasAuth ? 'completed' : 'queued'}`} />
-          {hasAuth ? 'Connected' : 'No key'}
-        </span>
+
+        {signedInEmail ? (
+          <>
+            <span className="chip" title={signedInEmail}>
+              <span className="dot completed" />
+              {signedInEmail.split('@')[0]}
+            </span>
+            <button className="ghost" onClick={onSignOut}>
+              Sign out
+            </button>
+            <button className="primary nav-cta" onClick={() => onNav('app')}>
+              Console
+            </button>
+          </>
+        ) : (
+          <>
+            <button className="ghost" onClick={() => onNav('auth')}>
+              Sign in
+            </button>
+            <button className="primary nav-cta" onClick={() => onNav('auth')}>
+              Get started
+            </button>
+          </>
+        )}
       </div>
     </nav>
   )

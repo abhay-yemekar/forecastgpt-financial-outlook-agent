@@ -117,16 +117,17 @@ app/
 ---
 
 ## 🧪 Features
-### ✔ PDF Extraction  
-### ✔ Transcript Parsing  
-### ✔ Financial Trend Analysis  
-### ✔ Risk & Opportunity Detection  
-### ✔ Local-LLaMA Forecast Generation  
-### ✔ Any Indian Listed Company (seeded registry)  
-### ✔ Async Job Queue (Redis + RQ, poll-based)  
-### ✔ MySQL Logging  
-### ✔ Automatic Caching of PDFs  
-### ✔ Clean JSON API Output  
+- **Grounded reports** — every figure traces to a real filing; missing metrics are reported as missing, never invented
+- **Quarter-over-quarter math** — revenue/profit/margin deltas computed from the extracted numbers, not paraphrased
+- **Earnings-call RAG** — FAISS retrieval over transcripts surfaces management themes, guidance and risks
+- **Any covered NSE company** — seeded, case-insensitive registry; one line to add more
+- **Async job pipeline** — Redis + RQ: submit in milliseconds, poll for the report, never a blocked request
+- **Two ways in** — Supabase console login (email + Google) or developer API keys via CLI
+- **Hybrid quota + BYOK** — free daily forecasts for signed-in users; `X-Provider-Key` bypasses quota, never stored
+- **Configurable LLM** — Ollama locally, Gemini/Groq/OpenAI/Anthropic in the cloud; env-only switch
+- **Rate limiting** — per-caller fixed windows in Redis with `Retry-After`
+- **SSRF-hardened fetching** — document downloads allowlisted, private IPs refused, redirects re-validated, size-capped
+- **Logging with receipts** — every request logged with company, status, and storage backend stamped
 
 ---
 
@@ -308,14 +309,12 @@ CI (`.github/workflows/ci.yml`) runs ruff + pytest and a frontend type-check/bui
 
 ---
 
-## 🛡 GitHub Visibility Boosters
-- Well-structured project directory  
-- Clean `.gitignore`  
-- Professional README  
-- Architecture diagrams  
-- Screenshots folder  
-- LICENSE file  
-- Tags for discoverability  
+## 🗺 Status & what's next
+**Shipped:** any-NSE-company reports · async job pipeline · Supabase console login + API keys · hybrid quota with BYOK · rate limiting · SSRF-hardened fetching · configurable LLM backends · flagship web console.
+
+**Designed, next up:** visual-native RAG over investor decks (ColPali/ColQwen2 — chart numbers without OCR). Full plan in [`docs/PRODUCT_DECISIONS.md`](docs/PRODUCT_DECISIONS.md) → D-6.
+
+**Deployment:** see [`docs/DEPLOY.md`](docs/DEPLOY.md) for the free-tier stack (Vercel + Render + Upstash + Supabase) with every limit spelled out.
 
 ---
 
