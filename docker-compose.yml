@@ -15,7 +15,7 @@ services:
   api:
     build: .
     ports:
-      - "8000:8000"
+      - "${API_PORT:-8000}:8000"
     environment:
       REDIS_URL: redis://redis:6379/0
       DATABASE_URL: ${DATABASE_URL:-}
@@ -31,7 +31,10 @@ services:
       # Reach a host-installed Ollama from containers:
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-10}
+      RATE_LIMIT_GET_PER_MINUTE: ${RATE_LIMIT_GET_PER_MINUTE:-120}
     depends_on:
       - redis
 
@@ -52,7 +55,10 @@ services:
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-10}
+      RATE_LIMIT_GET_PER_MINUTE: ${RATE_LIMIT_GET_PER_MINUTE:-120}
     depends_on:
       - redis
 
@@ -65,4 +71,4 @@ services:
       MYSQL_PASSWORD: forecastgpt
       MYSQL_DATABASE: forecastgpt
     ports:
-      - "3306:3306"
+      - "${MYSQL_HOST_PORT:-3306}:3306"
