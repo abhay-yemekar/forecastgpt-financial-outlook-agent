@@ -37,8 +37,15 @@ def enqueue_forecast_job(
     query: str,
     financial_doc_urls: list[str] | None,
     transcript_urls: list[str] | None,
+    provider_key: str | None = None,
 ) -> None:
-    get_queue().enqueue(
+    conn = Redis.from_url(settings.REDIS_URL)
+    # BYOK keys travel via a short-lived Redis side-channel instead of the
+    # queue payload — RQ logs job arguments, and provider keys must never
+    # land in logs. The worker reads and deletes it (one-time).
+    if provider_key:
+        conn.setex(f"byok:{row_id}", 3600, provider_key)
+    Queue("forecasts", connection=conn).enqueue(
         "app.jobs.run_forecast_job",  # string path so the worker imports it itself
         row_id,
         company_symbol,
@@ -50,6 +57,16 @@ def enqueue_forecast_job(
         job_id=str(row_id),
         job_timeout=JOB_TIMEOUT_SECONDS,
     )
+
+
+def _pop_provider_key(row_id: int) -> str | None:
+    """One-time read of the BYOK key for this job (returns None if absent)."""
+    conn = Redis.from_url(settings.REDIS_URL)
+    key = conn.get(f"byok:{row_id}")
+    if key is None:
+        return None
+    conn.delete(f"byok:{row_id}")
+    return key.decode()
 
 
 def run_forecast_job(
@@ -71,6 +88,7 @@ def run_forecast_job(
         db.commit()
 
         try:
+            provider_key = _pop_provider_key(row_id)
             if financial_doc_urls:
                 fin_paths = fetch_given_urls(financial_doc_urls)
             else:
@@ -87,6 +105,7 @@ def run_forecast_job(
                 tr_paths,
                 company_name=company_name,
                 symbol=company_symbol,
+                llm_api_key=provider_key,
             )
 
             row.input_meta = {"financial_docs": fin_paths, "transcripts": tr_paths}

@@ -150,6 +150,13 @@ class ForecastAgent:
         self.llm = get_llm_provider().get_chat_model(temperature=0.2)
         log.info(f"ForecastAgent initialised with LLM_PROVIDER={settings.LLM_PROVIDER} model: {settings.LLM_MODEL}")
 
+    def _chat_model(self, llm_api_key: str | None):
+        """Default chat model, or a one-off model using the caller's own
+        provider key (BYOK, D-2 hybrid)."""
+        if not llm_api_key:
+            return self.llm
+        return get_llm_provider().get_chat_model(temperature=0.2, api_key=llm_api_key)
+
     def run(
         self,
         query: str,
@@ -157,7 +164,9 @@ class ForecastAgent:
         transcripts: list[str],
         company_name: str,
         symbol: str,
+        llm_api_key: str | None = None,
     ) -> dict[str, Any]:
+        llm = self._chat_model(llm_api_key)
         # 1) Extract hard financial metrics from quarterly PDFs
         fin = extract_financial_metrics(financial_pdfs)
 
@@ -219,7 +228,7 @@ class ForecastAgent:
             {"role": "user", "content": user_prompt},
         ]
 
-        raw = self.llm.invoke(messages).content
+        raw = llm.invoke(messages).content
 
         # 5) Parse / normalise JSON with robust error-handling
         try:

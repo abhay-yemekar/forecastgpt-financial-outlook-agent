@@ -139,17 +139,20 @@ app/
 
 ### **Health: `GET /health`** — liveness. **`GET /ready`** — checks DB and Redis connectivity (503 when either is down).
 
-### **Authentication (API keys)**
-`POST /forecasts` and `GET /forecasts/{id}` require an API key in the `X-API-Key` header. `/health`, `/ready`, and `/companies` are open.
+### **Authentication — two ways in**
+1. **Console users (Supabase Auth):** email+password or Google OAuth in the web console. Free daily quota (`QUOTA_FREE_PER_DAY`, default 3) on the operator's managed LLM key, bounded by a service-wide daily cap (`QUOTA_GLOBAL_PER_DAY`, 400). Users see only their own forecasts.
+2. **Developers (API keys):** `X-API-Key` via the CLI — rate-limited but never quota'd; sees all jobs (operator level).
 
-Manage users and keys with the CLI (passwords are Argon2id-hashed; only a SHA-256 hash of each key is stored, so a key is shown exactly once):
+**BYOK (bring your own key):** any caller can send `X-Provider-Key: <key>` on `POST /forecasts` to bypass the quota — the key is used once for that job and never stored or logged.
+
+Manage API keys:
 ```bash
 python -m app.cli user create --email you@example.com --password 'secret'
 python -m app.cli key create --email you@example.com --password 'secret'   # prints the raw key once
 python -m app.cli key list --email you@example.com
 python -m app.cli key revoke --prefix fgpt_AbC123
 ```
-Calls are rate limited per key (fixed windows in Redis): `RATE_LIMIT_PER_MINUTE` (default 10/min) for `POST /forecasts`, and a separate, larger `RATE_LIMIT_GET_PER_MINUTE` (default 120/min) for status reads so polling a long-running job never eats the submission budget. Exceeding either returns `429` with a `Retry-After` header.
+Rate limits per caller: `RATE_LIMIT_PER_MINUTE` (POST, 10/min) and `RATE_LIMIT_GET_PER_MINUTE` (status reads, 120/min) — `429` responses carry `Retry-After`. To enable console login, create a free Supabase project and set `SUPABASE_URL`/`SUPABASE_JWT_SECRET` (backend) + `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` (frontend, see `web/.env.example`) — see `docs/how_to_run.md`.
 
 ```bash
 curl -X POST http://localhost:8000/forecasts \

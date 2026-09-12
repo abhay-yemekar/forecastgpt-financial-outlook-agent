@@ -23,9 +23,10 @@ def _require(package: str, pip_name: str):
 class OllamaProvider:
     name = "ollama"
 
-    def get_chat_model(self, **kwargs):
+    def get_chat_model(self, api_key: str | None = None, **kwargs):
         from langchain_ollama import ChatOllama
 
+        kwargs.pop("api_key", None)  # local Ollama needs no key; BYOK is a no-op
         kwargs.setdefault("temperature", 0.2)
         return ChatOllama(
             model=settings.LLM_MODEL,
@@ -49,17 +50,14 @@ class OpenAIProvider:
             kw["base_url"] = settings.OPENAI_BASE_URL
         return kw
 
-    def get_chat_model(self, **kwargs):
-        if not settings.OPENAI_API_KEY:
+    def get_chat_model(self, api_key: str | None = None, **kwargs):
+        # BYOK: an explicit api_key overrides the operator's managed key.
+        key = api_key or settings.OPENAI_API_KEY
+        if not key:
             raise RuntimeError("OPENAI_API_KEY is not set; export it to use the openai provider.")
         mod = _require("langchain_openai", "langchain-openai")
         kwargs.setdefault("temperature", 0.2)
-        return mod.ChatOpenAI(
-            model=settings.LLM_MODEL,
-            api_key=settings.OPENAI_API_KEY,
-            **self._kwargs(),
-            **kwargs,
-        )
+        return mod.ChatOpenAI(model=settings.LLM_MODEL, api_key=key, **self._kwargs(), **kwargs)
 
     def get_embedding_model(self):
         if not settings.OPENAI_API_KEY:
@@ -75,12 +73,13 @@ class OpenAIProvider:
 class AnthropicProvider:
     name = "anthropic"
 
-    def get_chat_model(self, **kwargs):
-        if not settings.ANTHROPIC_API_KEY:
+    def get_chat_model(self, api_key: str | None = None, **kwargs):
+        key = api_key or settings.ANTHROPIC_API_KEY
+        if not key:
             raise RuntimeError("ANTHROPIC_API_KEY is not set; export it to use the anthropic provider.")
         mod = _require("langchain_anthropic", "langchain-anthropic")
         kwargs.setdefault("temperature", 0.2)
-        return mod.ChatAnthropic(model=settings.LLM_MODEL, api_key=settings.ANTHROPIC_API_KEY, **kwargs)
+        return mod.ChatAnthropic(model=settings.LLM_MODEL, api_key=key, **kwargs)
 
     def get_embedding_model(self):
         raise RuntimeError(

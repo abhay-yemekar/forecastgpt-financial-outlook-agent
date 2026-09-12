@@ -35,6 +35,17 @@ class Settings(BaseSettings):
     RATE_LIMIT_PER_MINUTE: int = 10
     RATE_LIMIT_GET_PER_MINUTE: int = 120
 
+    # Supabase Auth (web console users). Leave the secret empty to disable
+    # JWT authentication — API keys keep working either way.
+    SUPABASE_URL: str = ""
+    SUPABASE_JWT_SECRET: str = ""
+
+    # D-2 hybrid key model: free daily quota for console users on the
+    # operator's managed LLM key (bounded inside Gemini's free tier), BYOK
+    # bypasses it. API keys are operator/dev-level and not quota'd.
+    QUOTA_FREE_PER_DAY: int = 3
+    QUOTA_GLOBAL_PER_DAY: int = 400
+
     # Database configuration (used for logging only)
     MYSQL_HOST: str = "localhost"
     MYSQL_PORT: int = 3306

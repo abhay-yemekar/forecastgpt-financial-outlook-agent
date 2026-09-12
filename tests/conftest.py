@@ -70,14 +70,16 @@ def fake_redis(monkeypatch):
     monkeypatch.setattr("app.main.Redis", _FakeRedisClass)
     monkeypatch.setattr("app.ratelimit.Redis", _FakeRedisClass)
     monkeypatch.setattr("app.jobs.Redis", _FakeRedisClass)
+    monkeypatch.setattr("app.quota.Redis", _FakeRedisClass)
     return _FakeRedisClass.fake
 
 
 @pytest.fixture()
 def client(monkeypatch):
-    # Rate limiting is exercised in dedicated tests; elsewhere it's a no-op
-    # so the suite needs no real Redis.
-    monkeypatch.setattr("app.main.enforce_rate_limit", lambda api_key_id, bucket="post": None)
+    # Rate limiting and quota are exercised in dedicated tests; elsewhere
+    # they're no-ops so the suite needs no real Redis.
+    monkeypatch.setattr("app.main.enforce_rate_limit", lambda subject, bucket="post": None)
+    monkeypatch.setattr("app.main.enforce_user_quota", lambda subject: None)
     with TestClient(app) as c:
         yield c
 
@@ -85,5 +87,13 @@ def client(monkeypatch):
 @pytest.fixture()
 def limited_client():
     """Client with rate limiting active (pair with the fake_redis fixture)."""
+    with TestClient(app) as c:
+        yield c
+
+
+@pytest.fixture()
+def quota_client(monkeypatch):
+    """Rate limiting stubbed, quota enforcement REAL (pair with fake_redis)."""
+    monkeypatch.setattr("app.main.enforce_rate_limit", lambda subject, bucket="post": None)
     with TestClient(app) as c:
         yield c

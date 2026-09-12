@@ -1,10 +1,13 @@
+import type { QuotaInfo } from '../api'
+
 interface Props {
   view: 'landing' | 'app'
   onNav: (view: 'landing' | 'app') => void
-  hasKey: boolean
+  hasAuth: boolean
+  quota: QuotaInfo | null
 }
 
-export default function Nav({ view, onNav, hasKey }: Props) {
+export default function Nav({ view, onNav, hasAuth, quota }: Props) {
   return (
     <nav className="nav glass">
       <button className="nav-brand" onClick={() => onNav('landing')} aria-label="ForecastGPT home">
@@ -26,9 +29,18 @@ export default function Nav({ view, onNav, hasKey }: Props) {
         >
           GitHub
         </a>
-        <span className={`chip key-chip ${hasKey ? 'ok' : ''}`} title={hasKey ? 'API key connected' : 'No API key — sample available'}>
-          <span className={`dot ${hasKey ? 'completed' : 'queued'}`} />
-          {hasKey ? 'Key connected' : 'No key'}
+        {quota?.quota === 'free_tier' && typeof quota.used === 'number' && typeof quota.limit === 'number' && (
+          <span
+            className={`chip key-chip ${quota.used >= quota.limit ? 'quota-out' : ''}`}
+            title={`Free daily quota: ${quota.used}/${quota.limit} used · resets ${quota.resets_at}`}
+          >
+            <span className={`dot ${quota.used >= quota.limit ? 'failed' : 'completed'}`} />
+            {quota.limit - quota.used} left today
+          </span>
+        )}
+        <span className={`chip key-chip ${hasAuth ? 'ok' : ''}`} title={hasAuth ? 'Signed in' : 'No API key — sample available'}>
+          <span className={`dot ${hasAuth ? 'completed' : 'queued'}`} />
+          {hasAuth ? 'Connected' : 'No key'}
         </span>
       </div>
     </nav>
