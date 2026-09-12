@@ -58,13 +58,14 @@ export default function Landing({ stats, onSample, onLaunch }: Props) {
           <span className="chip hero-eyebrow">✦ Grounded in real filings · screener.in</span>
         </div>
         <h1 className="fade-up d1">
-          The quarterly outlook engine
+          Analyst-style outlook reports,
           <br />
-          for <span className="grad-text">Indian listed companies</span>
+          <span className="grad-text">grounded in real filings</span>
         </h1>
         <p className="hero-sub muted fade-up d2">
-          ForecastGPT reads the latest results decks and earnings calls, then produces a
-          confidence-scored outlook for the next quarter — as an API and a console.
+          Not another dashboard. ForecastGPT reads the latest results decks and
+          earnings calls for any covered NSE company, then writes a
+          confidence-scored outlook report for next quarter — via console or API.
         </p>
 
         <div className="hero-cta fade-up d3">

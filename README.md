@@ -1,10 +1,22 @@
-# ForecastGPT – AI-Powered Financial Outlook Agent
+# ForecastGPT — Quarterly Outlook Reports, Grounded in Real Filings
+
+> **A report, not a dashboard.** Pick an Indian listed company and ForecastGPT
+> reads its latest results decks and earnings calls, then writes a
+> narrative, confidence-scored outlook for the next quarter — as a web
+> console and a developer API.
 
 ## 📌 Overview
 ForecastGPT is an end-to-end AI system designed to analyze real quarterly financial reports and earnings call transcripts, extract key financial insights, and generate qualitative next-quarter forecasts using **Ollama + LLaMA models**, **FAISS-based RAG**, and **FastAPI**.  
 Built with production-like architecture — featuring PDF processing, vector embeddings, local LLM inference, caching, and MySQL logging.
 
-> 📚 **Docs**: [docs/how_to_run.md](docs/how_to_run.md) — step-by-step setup from a fresh clone, plus a guide to going live on free services (hosting, free LLM APIs, database).
+**Where it sits:** institutional research tools (AlphaSense, Hebbia, Bloomberg
+AskB) are expensive and contract-gated; retail platforms (Seeking Alpha,
+Simply Wall St, Stock Rover, Koyfin) are dashboards and ratings — not
+narrative analysis. ForecastGPT occupies the narrow, near-zero-cost middle:
+**a generated analyst-style outlook report per company** — no sales process,
+no $20+/month subscription.
+
+> **A report, not a dashboard.** See [docs/](docs/) for setup, deployment, and product decisions.
 
 ---
 
@@ -12,6 +24,11 @@ Built with production-like architecture — featuring PDF processing, vector emb
 ForecastGPT currently supports **Indian listed companies with [screener.in](https://www.screener.in) coverage** — documents are discovered from each company's Screener page (quarterly results, fact sheets, earnings-call transcripts). The company set lives in a seeded registry (`app/companies.py`); call `GET /companies` for the current list.
 
 Adding a company = one line in `SEED_COMPANIES` (NSE symbol + Screener slug). Global filings (SEC/EDGAR, etc.) are a **clear extension point**, not a hidden limitation: plugging in another document source means adding a fetcher alongside `app/utils/fetcher.py`.
+
+## 📦 Docs
+- [`docs/how_to_run.md`](docs/how_to_run.md) — step-by-step setup from a fresh clone
+- [`docs/DEPLOY.md`](docs/DEPLOY.md) — going live on free tiers (Vercel + Render + Upstash + Supabase), free-tier limits spelled out
+- [`docs/PRODUCT_DECISIONS.md`](docs/PRODUCT_DECISIONS.md) — the strategy record (auth, key/cost model, positioning)
 
 ---
 
