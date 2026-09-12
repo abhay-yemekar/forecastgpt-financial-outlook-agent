@@ -93,6 +93,26 @@ python -m app.cli key create --email you@example.com --password your-secret
 # → prints an fgpt_... key ONCE. Save it; it cannot be shown again.
 ```
 
+## 3b. (Optional) Console login via Supabase
+
+The web console supports two ways in: API keys (above) or Supabase Auth
+(email + Google OAuth). To enable login:
+
+1. Create a free project at [supabase.com](https://supabase.com).
+2. Root `.env`: set `SUPABASE_URL` to the Project URL (Settings → API).
+   Session tokens are verified against the project's **public JWKS**
+   (`<SUPABASE_URL>/auth/v1/.well-known/jwks.json`) — no secret needed on
+   current projects. `SUPABASE_JWT_SECRET` is only for legacy projects still
+   signing with the old symmetric secret.
+3. `web/.env` (copy `web/.env.example`): set `VITE_SUPABASE_URL` and
+   `VITE_SUPABASE_ANON_KEY` (anon public key from Settings → API).
+4. Google sign-in: Supabase → Authentication → Providers → Google → enable,
+   with an OAuth client from Google Cloud Console (redirect URI:
+   `https://<project-ref>.supabase.co/auth/v1/callback`), and add your app
+   URL under Authentication → URL Configuration.
+
+Without this, everything still works in API-key mode.
+
 ## 4. Start the app (3 processes, 3 terminals)
 
 ```bash
