@@ -72,6 +72,32 @@ Write-Host "Checking host port(s) for ForecastGPT dependencies..."
 $redisPort = $env:REDIS_PORT;      if (-not $redisPort)      { $redisPort = "6380" }
 $apiPort = $env:API_PORT;          if (-not $apiPort)        { $apiPort = "8000" }
 $mysqlPort = $env:MYSQL_HOST_PORT; if (-not $mysqlPort)      { $mysqlPort = "3306" }
+
+# Duplicate configured host ports: compose cannot bind two services to one
+# host port; catch it here, before the socket checks (a duplicated-but-
+# unbound port would otherwise report as "free" for both checks).
+$claimed = @{}
+foreach ($spec in @(
+    @{ Var = "REDIS_PORT";      Port = $redisPort; Mode = "required" },
+    @{ Var = "API_PORT";        Port = $apiPort;   Mode = "required" },
+    @{ Var = "MYSQL_HOST_PORT"; Port = $mysqlPort; Mode = "optional" })) {
+    $port = $spec.Port
+    if ($claimed.ContainsKey($port)) {
+        $other = $claimed[$port]
+        if ($spec.Mode -eq "required") {
+            Write-Host "  [FAIL] $($spec.Var) and $other are BOTH set to host port $port -"
+            Write-Host "         compose cannot bind two services to one port."
+            Write-Host "         Change one of them in .env."
+            $script:fail = $true
+        }
+        else {
+            Write-Host "  [WARN] $($spec.Var) ($port) collides with $other - harmless for the app,"
+            Write-Host "         but 'docker compose --profile mysql' would fail to bind."
+        }
+    }
+    $claimed[$port] = $spec.Var
+}
+
 Test-Port -Name "Redis (job queue)"   -Var "REDIS_PORT"      -Port $redisPort -Mode "required"
 Test-Port -Name "API service"         -Var "API_PORT"        -Port $apiPort   -Mode "required"
 Test-Port -Name "MySQL (opt profile)" -Var "MYSQL_HOST_PORT" -Port $mysqlPort -Mode "optional"

@@ -34,6 +34,41 @@ fi
 
 fail=0
 
+# --- duplicate configured host ports ------------------------------------------
+# Compose cannot bind two services to one host port; catch duplicated values
+# here, before the socket checks (a duplicated-but-unbound port would
+# otherwise report as "free" for both checks).
+declare -A _owner_of_port
+port_conflict=0
+for spec in \
+  "REDIS_PORT:required" \
+  "API_PORT:required" \
+  "MYSQL_HOST_PORT:optional"; do
+  var="${spec%%:*}"
+  mode="${spec##*:}"
+  port="$(eval "echo \${$var:-}")"
+  case "$var:$port" in
+    REDIS_PORT:) port=6380 ;;
+    API_PORT:) port=8000 ;;
+    MYSQL_HOST_PORT:) port=3306 ;;
+  esac
+  if [ -n "${_owner_of_port[$port]:-}" ]; then
+    other="${_owner_of_port[$port]}"
+    if [ "$mode" = "required" ]; then
+      echo "  [FAIL] $var and $other are BOTH set to host port $port —"
+      echo "         compose cannot bind two services to one port."
+      echo "         Change one of them in .env."
+      fail=1
+    else
+      echo "  [WARN] $var ($port) collides with $other — harmless for the app,"
+      echo "         but 'docker compose --profile mysql' would fail to bind."
+    fi
+    port_conflict=1
+  fi
+  _owner_of_port[$port]="$var"
+done
+[ "$port_conflict" -eq 1 ] && echo ""
+
 # --- helper: is the port bound on TCP? ---------------------------------------
 port_bound() {
   # Windows (netstat), then Linux (ss), then macOS (lsof) fallbacks
