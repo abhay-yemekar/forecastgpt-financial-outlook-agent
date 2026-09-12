@@ -26,25 +26,23 @@ the agent implements only after it is resolved here.
 - **Scope note:** existing `users`/`api_keys` tables stay — Supabase identity
   *owns* keys, the API-key mechanism itself is unchanged. GAP-01.
 
-### D-2 (C2) · API-key / cost model — **DECISION NEEDED — Abhay** ⏸
-Phase 5 (`feat/auth-and-key-model`) is blocked on this.
-- **(a) Fully managed:** you pay all LLM usage. Simplest UX; one heavy user
-  exhausts Gemini's free tier for everyone.
-- **(b) Fully BYOK:** every user brings their own key (Gemini/Anthropic/OpenAI
-  via `OPENAI_BASE_URL`, already supported). Zero cost to you; most friction
-  for casual users; app feels "unfinished" to non-developers.
-- **(c) Hybrid — RECOMMENDED:** every user gets a small bounded daily/weekly
-  quota on **your** managed key (sized so total usage stays inside Gemini's
-  free tier — e.g. 3 forecasts/user/day, global daily cap ≈ free-tier budget),
-  and users may add their own key for unlimited use. Quota counters live in
-  the same Redis used for rate limiting; enforcement rides the existing
-  per-key fixed-window limiter (`app/ratelimit.py`).
-- **Cost containment math (why hybrid is safe):** Gemini free tier allows
-  ~1,500 chat requests/day (flash-class). A forecast ≈ 1 chat call + 1
-  embedding batch. At 3/day/user, 100 active users ≈ 300 calls/day — well
-  inside budget; the global cap is the hard backstop.
-- **Status:** pending. Until decided, no public key distribution happens
-  (which is also what keeps GAP-02's SSRF surface closed to strangers).
+### D-2 (C2) · API-key / cost model — **RESOLVED (2026-09-09): hybrid** ✅
+Abhay confirmed the recommendation. Implemented in `feat/auth-and-key-model`:
+- Console users (Supabase Auth): `QUOTA_FREE_PER_DAY` (default 3) forecasts/day
+  on the operator's managed LLM key + `QUOTA_GLOBAL_PER_DAY` (default 400)
+  service-wide cap — UTC fixed windows in Redis (`app/quota.py`), counters
+  rolled back on rejection. 429 carries `Retry-After` + a BYOK hint.
+- **BYOK:** `X-Provider-Key` header on `POST /forecasts` bypasses the
+  per-user quota; the key travels via a short-lived Redis side-channel
+  (never in RQ queue payloads, which are logged) and is consumed once by the
+  worker. BYOK keys are for the deployment's configured provider (e.g. a
+  Gemini key when `OPENAI_BASE_URL` points at Gemini).
+- API-key principals: operator/dev-level — rate-limited but never quota'd.
+- Console users see only their own jobs (`forecast_logs.owner_id`);
+  API keys see all.
+- Cost containment math (why hybrid is safe): Gemini free tier allows
+  ~1,500 chat requests/day (flash-class). At 3/day/user, 100 active users ≈
+  300 calls/day — well inside budget; the global cap is the hard backstop.
 
 ### D-3 (C3) · Custom company support — **accepted, phased**
 - **Decision:** ticker/name lookup first (search across NSE universe, insert
