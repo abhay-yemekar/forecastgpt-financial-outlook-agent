@@ -1,15 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { fetchCompanies, fetchQuotaMe, fetchStats, getForecast, listForecasts, submitForecast, type Auth, type QuotaInfo } from './api'
+import {
+  fetchCompanies,
+  fetchQuotaMe,
+  fetchStats,
+  getForecast,
+  listForecasts,
+  submitForecast,
+  type Auth,
+  type QuotaInfo,
+} from './api'
 import { supabase } from './lib/supabase'
 import sampleJob from './data/sampleResult.json'
 import type { Company, Job, JobSummary, Stats } from './types'
-import AuthPanel, { type SessionInfo } from './components/AuthPanel'
 import Landing from './components/Landing'
 import Nav from './components/Nav'
 import SubmitForm from './components/SubmitForm'
 import JobTimeline from './components/JobTimeline'
 import ResultView from './components/ResultView'
 import HistoryPanel from './components/HistoryPanel'
+import Footer from './components/Footer'
+import AuthPage from './pages/AuthPage'
 
 const KEY_STORAGE = 'fgpt_api_key'
 const JOB_STORAGE = 'fgpt_active_job'
@@ -17,15 +27,19 @@ const DEFAULT_QUERY =
   'Analyze the latest quarterly results and give a qualitative outlook for the next quarter.'
 const POLL_MS = 3000
 
-type HashRoute = '' | 'sample' | 'console'
+type View = 'landing' | 'auth' | 'app'
+type Route = 'landing' | 'auth' | 'console' | 'sample'
 
-function currentRoute(): HashRoute {
+function currentRoute(): Route {
   const h = window.location.hash.replace(/^#\/?/, '')
-  return h === 'sample' || h === 'console' ? (h as HashRoute) : ''
+  if (h === 'sample' || h === 'console') return h
+  if (h === 'auth') return 'auth'
+  return 'landing'
 }
 
-function goRoute(route: HashRoute) {
-  if (currentRoute() !== route) window.location.hash = route ? `#/${route}` : '#/'
+function goRoute(route: Route) {
+  const target = route === 'console' ? '#/console' : route === 'sample' ? '#/sample' : route === 'auth' ? '#/auth' : '#/'
+  if (window.location.hash !== target) window.location.hash = target
 }
 
 function loadActiveJob(): { jobId: number; status: string } | null {
@@ -47,8 +61,8 @@ function saveActiveJob(job: { jobId: number; status: string } | null) {
 }
 
 export default function App() {
-  const [view, setView] = useState<'landing' | 'app'>('landing')
-  const [session, setSession] = useState<SessionInfo | null>(null)
+  const [view, setView] = useState<View>('landing')
+  const [session, setSession] = useState<SessionInfoLike | null>(null)
   const [apiKey, setApiKey] = useState(() => localStorage.getItem(KEY_STORAGE) ?? '')
   const [providerKey, setProviderKey] = useState(() => localStorage.getItem('fgpt_provider_key') ?? '')
   const [companies, setCompanies] = useState<Company[]>([])
@@ -87,9 +101,7 @@ export default function App() {
     if (!supabase) return
     supabase.auth.getSession().then(({ data }) => {
       const s = data.session
-      if (s?.user.email) {
-        setSession({ email: s.user.email, token: s.access_token })
-      }
+      if (s?.user.email) setSession({ email: s.user.email, token: s.access_token })
     })
     const { data } = supabase.auth.onAuthStateChange((_event, s) => {
       if (s?.user.email) setSession({ email: s.user.email, token: s.access_token })
@@ -107,23 +119,29 @@ export default function App() {
 
   useEffect(() => stopPolling, [stopPolling])
 
-  // Views are URL-addressable (#/sample, #/console) so links are shareable
-  // and back/forward work.
   const applyRoute = useCallback(
-    (route: HashRoute) => {
+    (route: Route) => {
       if (route === 'sample') {
+        // 'sample' route preloads the console with the sample report.
         stopPolling()
         setSample(true)
         setSubmitError(null)
         setJob(sampleJob as unknown as Job)
         setView('app')
       } else if (route === 'console') {
-        setView('app')
+        // Console guard: no session and no key → sign in first.
+        if (!session && !apiKey.trim() && !loadActiveJob()) {
+          setView('auth')
+        } else {
+          setView('app')
+        }
+      } else if (route === 'auth') {
+        setView(session ? 'app' : 'auth')
       } else {
         setView('landing')
       }
     },
-    [stopPolling],
+    [session, apiKey, stopPolling],
   )
 
   const refreshHistory = useCallback(async () => {
@@ -239,8 +257,8 @@ export default function App() {
   )
 
   const onSample = useCallback(() => {
-    goRoute('sample')
     applyRoute('sample')
+    goRoute('sample')
   }, [applyRoute])
 
   const onReset = useCallback(() => {
@@ -249,18 +267,23 @@ export default function App() {
     setSample(false)
     setSubmitError(null)
     saveActiveJob(null)
-    goRoute('console')
     applyRoute('console')
+    goRoute('console')
   }, [stopPolling, applyRoute])
 
   const navTo = useCallback(
-    (v: 'landing' | 'app') => {
-      const route: HashRoute = v === 'app' ? 'console' : ''
-      goRoute(route)
+    (v: 'landing' | 'app' | 'auth') => {
+      const route: Route = v === 'app' ? 'console' : v
       applyRoute(route)
+      goRoute(route)
     },
     [applyRoute],
   )
+
+  const onSignOut = useCallback(() => {
+    if (supabase) supabase.auth.signOut()
+    setSession(null)
+  }, [])
 
   const showResult = (job?.status === 'completed' || sample) && job?.result
   const showTimeline =
@@ -268,49 +291,47 @@ export default function App() {
 
   return (
     <div className="shell">
-      <Nav view={view} onNav={navTo} hasAuth={Boolean(session || apiKey.trim())} quota={quota} />
+      <Nav
+        view={view}
+        onNav={navTo}
+        quota={quota}
+        signedInEmail={session?.email ?? null}
+        onSignOut={onSignOut}
+      />
 
-      {view === 'landing' ? (
-        <Landing stats={stats} onSample={onSample} onLaunch={() => navTo('app')} />
-      ) : (
+      {view === 'landing' && (
+        <Landing
+          stats={stats}
+          onSample={onSample}
+          onLaunch={() => navTo('app')}
+          onAuth={() => navTo('auth')}
+        />
+      )}
+
+      {view === 'auth' && (
+        <AuthPage session={session} onSession={setSession} onReady={() => navTo('app')} />
+      )}
+
+      {view === 'app' && (
         <div className="console">
           <div className="console-main">
             {!showResult && (
-              <>
-                <section className="glass card fade-up">
-                  <AuthPanel session={session} onSession={setSession} />
-                </section>
-
-                {!session && (
-                  <SubmitForm
-                    apiKey={apiKey}
-                    onApiKeyChange={setApiKey}
-                    companies={companies}
-                    defaultQuery={DEFAULT_QUERY}
-                    submitting={submitting}
-                    onSubmit={onSubmit}
-                  />
-                )}
-                {session && (
-                  <SubmitForm
-                    apiKey=""
-                    hideKeyField
-                    providerKey={providerKey}
-                    onProviderKeyChange={setProviderKey}
-                    companies={companies}
-                    defaultQuery={DEFAULT_QUERY}
-                    submitting={submitting}
-                    onSubmit={onSubmit}
-                  />
-                )}
-              </>
+              <SubmitForm
+                apiKey={apiKey}
+                onApiKeyChange={setApiKey}
+                hideKeyField={Boolean(session)}
+                providerKey={providerKey}
+                onProviderKeyChange={setProviderKey}
+                companies={companies}
+                defaultQuery={DEFAULT_QUERY}
+                submitting={submitting}
+                onSubmit={onSubmit}
+              />
             )}
 
             {submitError && <div className="banner error fade-up">{submitError}</div>}
 
-            {showTimeline && job && (
-              <JobTimeline job={job} startedAt={startedAt} onCancel={onReset} />
-            )}
+            {showTimeline && job && <JobTimeline job={job} startedAt={startedAt} onCancel={onReset} />}
 
             {showResult && job?.result && (
               <ResultView job={job} result={job.result} sample={sample} onReset={onReset} />
@@ -327,14 +348,13 @@ export default function App() {
         </div>
       )}
 
-      <footer className="footer">
-        <span>
-          ForecastGPT · grounded in <a href="https://www.screener.in">screener.in</a> filings
-        </span>
-        <span className="faint">
-          Same public API developers use: <code>POST /forecasts</code> · <code>GET /forecasts/&#123;id&#125;</code>
-        </span>
-      </footer>
+      <Footer onNav={navTo} />
     </div>
   )
+}
+
+// Local structural type (AuthPanel owns its real one) to avoid circular import.
+interface SessionInfoLike {
+  email: string
+  token: string
 }

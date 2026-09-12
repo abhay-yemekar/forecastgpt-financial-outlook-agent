@@ -4,6 +4,7 @@ import '@fontsource-variable/inter'
 import '@fontsource-variable/jetbrains-mono'
 import './theme.css'
 import './components.css'
+import './v2.css'
 import App from './App'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
