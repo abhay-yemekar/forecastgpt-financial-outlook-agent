@@ -1,3 +1,4 @@
+import ipaddress
 import socket
 
 import pytest
@@ -13,7 +14,13 @@ def fake_dns(monkeypatch):
     resolve even .invalid names, which would make refusals flaky)."""
 
     def getaddrinfo(host, port, *args, **kwargs):
-        return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", (PUBLIC_IP, 0))]
+        # Literal IPs resolve to themselves (matches real getaddrinfo);
+        # names resolve to a fixed public IP.
+        try:
+            resolved = str(ipaddress.ip_address(host))
+        except ValueError:
+            resolved = PUBLIC_IP
+        return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", (resolved, 0))]
 
     monkeypatch.setattr(socket, "getaddrinfo", getaddrinfo)
 
@@ -26,9 +33,18 @@ def test_subdomain_of_allowlisted_host_passes():
     assert validate_url("https://archives.bseindia.com/x.pdf")
 
 
-def test_unknown_host_refused():
-    with pytest.raises(UnsafeUrlError, match="not an allowed document source"):
-        validate_url("https://evil.example.com/doc.pdf")
+def test_unknown_public_host_passes_by_default():
+    # Companies host filings on their OWN domains (wipro.com, hdfcbank.com,
+    # ...) — a static allowlist can never cover them. Any https URL that
+    # resolves public is allowed unless ALLOWED_DOC_HOSTS restricts it.
+    assert validate_url("https://www.wipro.com/investors/deck.pdf")
+
+
+def test_optional_restriction_mode(monkeypatch):
+    monkeypatch.setattr("app.utils.fetcher.ALLOWED_DOC_HOSTS", {"screener.in"})
+    assert validate_url("https://www.screener.in/a.pdf")
+    with pytest.raises(UnsafeUrlError, match="ALLOWED_DOC_HOSTS"):
+        validate_url("https://www.wipro.com/deck.pdf")
 
 
 def test_literal_loopback_ip_refused():

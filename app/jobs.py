@@ -12,6 +12,7 @@ from app.agent import ForecastAgent
 from app.config import settings
 from app.db.models import ForecastLog
 from app.db.mysql import SessionLocal
+from app.quota import refund_user_quota
 from app.utils.fetcher import fetch_given_urls, fetch_recent_docs
 from app.utils.logger import get_logger
 
@@ -87,8 +88,8 @@ def run_forecast_job(
         row.status = "running"
         db.commit()
 
+        provider_key = _pop_provider_key(row_id)
         try:
-            provider_key = _pop_provider_key(row_id)
             if financial_doc_urls:
                 fin_paths = fetch_given_urls(financial_doc_urls)
             else:
@@ -115,6 +116,11 @@ def run_forecast_job(
             log.exception(f"Forecast job {row_id} failed: {e}")
             row.status = "failed"
             row.error = str(e)[:2000]
+            # Fair-quota: failed forecasts must not consume the daily slot.
+            # BYOK runs used the caller's own key, so there is nothing to give
+            # back; operator/api-key jobs aren't quota'd either.
+            if row.owner_id and not provider_key:
+                refund_user_quota(row.owner_id)
 
         db.commit()
         return row.status

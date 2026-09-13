@@ -46,6 +46,20 @@ def quota_usage(subject: str, redis_client: Redis | None = None) -> dict:
     }
 
 
+def refund_user_quota(subject: str) -> None:
+    """Give back one forecast slot (per-user + global counters) after a job
+    FAILED. Failed forecasts must not consume the daily quota. Floor at 0."""
+    client = Redis.from_url(settings.REDIS_URL)
+    day = _today()
+    for key in (f"quota:user:{subject}:{day}", f"quota:global:{day}"):
+        try:
+            value = int(client.get(key) or 0)
+            if value > 0:
+                client.decr(key)
+        except Exception as e:  # refund is best-effort; never mask the job error
+            log.warning(f"Quota refund failed for {subject}: {e}")
+
+
 def enforce_user_quota(subject: str) -> None:
     """Count one forecast against the user's daily quota and the global cap.
     Raises 429 (with Retry-After seconds) when either is exhausted."""

@@ -1,6 +1,9 @@
 import pytest
 
 from app.config import settings
+from app.db.models import ForecastLog
+from app.db.mysql import SessionLocal
+from app.quota import enforce_user_quota, refund_user_quota
 
 
 def _auth(sub: str) -> dict:
@@ -96,3 +99,59 @@ def test_failed_rejections_do_not_consume_quota(quota_client, supabase_on, tiny_
     quota_client.post("/forecasts", json={"query": "q", "company": "TCS"}, headers=headers)  # 429
     body = quota_client.get("/quota/me", headers=headers).json()
     assert body["used"] == 2  # exactly the two accepted calls
+
+
+def test_failed_job_refunds_quota(fake_redis, monkeypatch):
+    """The exact bug Abhay hit: a failed forecast consumed a daily slot."""
+    from app.db.models import ForecastLog
+    from app.db.mysql import SessionLocal
+    from app.jobs import run_forecast_job
+
+    # Seed a row owned by a console user (no BYOK staged).
+    db = SessionLocal()
+    row = ForecastLog(
+        company="WIPRO", owner_id="refund-user", query="q",
+        status="queued", model_used="test:fake", storage_backend="sqlite",
+    )
+    db.add(row)
+    db.commit()
+    row_id = row.id
+    db.close()
+
+    def boom(*args, **kwargs):
+        raise RuntimeError("host blocked")
+
+    monkeypatch.setattr("app.jobs.fetch_given_urls", boom)
+    status = run_forecast_job(row_id, "WIPRO", "WIPRO", "Wipro", "q", ["x.pdf"], None)
+    assert status == "failed"
+
+    # Refund already ran inside the failed job; one more slot must still be
+    # available under limit 2 (i.e. the failure did not stack usage).
+    enforce_user_quota("refund-user")  # no exception → slot was refunded
+    usage_keys = [k for k in fake_redis.keys("quota:user:refund-user:*")]
+    assert all(int(fake_redis.get(k) or 0) <= 2 for k in usage_keys)
+    refund_user_quota("refund-user")  # tidy up for other assertions
+
+
+def test_failed_byok_job_does_not_refund_managed_quota(fake_redis, monkeypatch):
+    from app.jobs import _pop_provider_key, run_forecast_job
+
+    db = SessionLocal()
+    row = ForecastLog(
+        company="WIPRO", owner_id="byok-refund-user", query="q",
+        status="queued", model_used="test:fake", storage_backend="sqlite",
+    )
+    db.add(row)
+    db.commit()
+    row_id = row.id
+    db.close()
+
+    fake_redis.setex(f"byok:{row_id}", 3600, "sk-user-key")
+
+    def boom(*args, **kwargs):
+        raise RuntimeError("LLM down")
+
+    monkeypatch.setattr("app.jobs.fetch_given_urls", boom)
+    status = run_forecast_job(row_id, "WIPRO", "WIPRO", "Wipro", "q", ["x.pdf"], None)
+    assert status == "failed"
+    assert _pop_provider_key(row_id) is None  # consumed earlier by the job

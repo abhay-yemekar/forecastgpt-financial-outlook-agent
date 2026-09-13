@@ -14,17 +14,16 @@ from .logger import get_logger
 log = get_logger("fetcher")
 
 # --- SSRF guardrails (GAP-02) -------------------------------------------------
-# User-supplied document URLs are fetched server-side, so downloads are
-# restricted to an allowlist of public financial-data hosts, redirected
-# re-validated, and size-capped. Private/loopback/link-local targets are
-# always refused regardless of the allowlist.
+# User-supplied document URLs are fetched server-side. The real threat is
+# reaching *internal* space (loopback, private ranges, cloud metadata), so the
+# hard rules are: http(s) only, every resolved IP must be public, redirects
+# re-validated per hop, size-capped. Hosts are unrestricted by default because
+# each listed company publishes filings on its OWN domain (wipro.com,
+# hdfcbank.com, infosys.com, ...) — a static allowlist can never cover them.
+# Set ALLOWED_DOC_HOSTS (comma-separated) to optionally lock to specific hosts.
 ALLOWED_DOC_HOSTS = {
     h.strip().lower()
-    for h in os.getenv(
-        "ALLOWED_DOC_HOSTS",
-        "screener.in,www.screener.in,bseindia.com,www.bseindia.com,"
-        "nseindia.com,www.nseindia.com,archives.nseindia.com",
-    ).split(",")
+    for h in os.getenv("ALLOWED_DOC_HOSTS", "").split(",")
     if h.strip()
 }
 MAX_DOWNLOAD_BYTES = 25 * 1024 * 1024  # 25 MB — filings/decks are far smaller
@@ -36,21 +35,24 @@ class UnsafeUrlError(ValueError):
 
 
 def validate_url(url: str) -> str:
-    """Validate scheme + host allowlist + resolved IPs. Returns the url."""
+    """Validate scheme, optional host restriction, and resolved IPs."""
     parsed = urlparse(url)
     if parsed.scheme not in ("http", "https"):
         raise UnsafeUrlError(f"only http/https URLs are allowed: {url!r}")
     host = (parsed.hostname or "").lower()
     if not host:
         raise UnsafeUrlError(f"URL has no hostname: {url!r}")
-    # exact match or subdomain of an allowlisted host
-    if not any(host == h or host.endswith("." + h) for h in ALLOWED_DOC_HOSTS):
+    # Optional restriction mode (unset by default — companies host filings
+    # on their own domains).
+    if ALLOWED_DOC_HOSTS and not any(
+        host == h or host.endswith("." + h) for h in ALLOWED_DOC_HOSTS
+    ):
         raise UnsafeUrlError(
             f"host {host!r} is not an allowed document source "
-            f"(allowlist: {sorted(ALLOWED_DOC_HOSTS)}; set ALLOWED_DOC_HOSTS to extend)"
+            f"(ALLOWED_DOC_HOSTS: {sorted(ALLOWED_DOC_HOSTS)})"
         )
     # Resolve and refuse private/loopback/link-local/reserved addresses
-    # (guards allowlisted-host DNS rebinding and literal-IP tricks).
+    # (guards literal-IP tricks and DNS rebinding to internal space).
     try:
         infos = socket.getaddrinfo(host, None)
     except socket.gaierror as e:
