@@ -46,6 +46,12 @@ class Settings(BaseSettings):
     QUOTA_FREE_PER_DAY: int = 3
     QUOTA_GLOBAL_PER_DAY: int = 400
 
+    # Single-container deployments (Render free / HF Spaces / demos): run an
+    # RQ worker INSIDE the API process. One service then serves the site,
+    # accepts submissions, AND executes forecasts. Leave off when a
+    # dedicated worker process exists (docker compose / python -m app.worker).
+    EMBED_WORKER: bool = False
+
     # Database configuration (used for logging only)
     MYSQL_HOST: str = "localhost"
     MYSQL_PORT: int = 3306
