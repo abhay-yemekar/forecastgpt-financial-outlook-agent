@@ -86,7 +86,7 @@ Abhay confirmed the recommendation. Implemented in `feat/auth-and-key-model`:
   5–10s on that tier; Supabase/Neon free DBs pause on inactivity.
 - **Interim truth:** today's deployment story is the repo's own
   `docker compose` (works on any VM, incl. Oracle Always Free) — documented
-  in `docs/how_to_run.md`.
+  in `docs/project_execution.md`.
 
 ---
 
