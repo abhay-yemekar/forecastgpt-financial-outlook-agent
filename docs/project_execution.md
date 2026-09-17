@@ -253,6 +253,24 @@ Unset allows any public https host. Remove the variable or add the host.
 SSRF guardrails refusing private/loopback targets — by design. Documents
 must come from publicly resolvable hosts.
 
+**T-25 · `[WinError 10013] An attempt was made to access a socket in a way forbidden by its access permissions` (uvicorn start)**
+Port 8000 is taken or blocked. Two causes, in order of likelihood:
+1. Another process holds it (a previous uvicorn that never died, another
+   project's server): `netstat -ano | findstr :8000` → note the PID →
+   `taskkill /PID <pid> /F` (only if it's YOURS), or simply run on another
+   port: `uvicorn app.main:app --port 8010`.
+2. Windows reserved the port range (Hyper-V/WSL does this):
+   `netsh interface ipv4 show excludedportrange protocol=tcp` — if 8000
+   falls in a range, use another port, or as admin:
+   `net stop winnat && net start winnat` (clears dynamic reservations).
+
+**T-26 · `pip's dependency resolver ... langchain-openai X requires langchain-core ... incompatible`**
+A manually-installed `langchain-openai` (e.g. 1.6.0 from the langchain 1.x
+line) conflicts with the repo's pinned langchain 0.3.x stack.
+Fix: `pip install "langchain-openai==0.2.14" "langchain-core==0.3.63" "langsmith==0.1.147"`
+(the set pinned in requirements.txt — `pip check` must end with "No broken
+requirements found"). Future installs from `requirements*.txt` stay coherent.
+
 **T-14 · Forecast completes but metrics say "Not found in the retrieved filings"**
 Some decks publish financials as images/charts with a sparse text layer
 (e.g. WIPRO) — regex extraction cannot read drawn numbers. Known limitation;
