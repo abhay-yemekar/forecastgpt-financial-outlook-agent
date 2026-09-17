@@ -26,7 +26,7 @@ ForecastGPT currently supports **Indian listed companies with [screener.in](http
 Adding a company = one line in `SEED_COMPANIES` (NSE symbol + Screener slug). Global filings (SEC/EDGAR, etc.) are a **clear extension point**, not a hidden limitation: plugging in another document source means adding a fetcher alongside `app/utils/fetcher.py`.
 
 ## 📦 Docs
-- [`docs/how_to_run.md`](docs/how_to_run.md) — step-by-step setup from a fresh clone
+- [`docs/project_execution.md`](docs/project_execution.md) — step-by-step setup from a fresh clone
 - [`docs/DEPLOY.md`](docs/DEPLOY.md) — going live on free tiers (Vercel + Render + Upstash + Supabase), free-tier limits spelled out
 - [`docs/PRODUCT_DECISIONS.md`](docs/PRODUCT_DECISIONS.md) — the strategy record (auth, key/cost model, positioning)
 
@@ -170,7 +170,7 @@ python -m app.cli key create --email you@example.com --password 'secret'   # pri
 python -m app.cli key list --email you@example.com
 python -m app.cli key revoke --prefix fgpt_AbC123
 ```
-Rate limits per caller: `RATE_LIMIT_PER_MINUTE` (POST, 10/min) and `RATE_LIMIT_GET_PER_MINUTE` (status reads, 120/min) — `429` responses carry `Retry-After`. To enable console login, create a free Supabase project and set `SUPABASE_URL` (backend) + `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` (frontend, see `web/.env.example`) — session tokens are verified against the project's public JWKS, so no secret is needed on current Supabase projects. See `docs/how_to_run.md`.
+Rate limits per caller: `RATE_LIMIT_PER_MINUTE` (POST, 10/min) and `RATE_LIMIT_GET_PER_MINUTE` (status reads, 120/min) — `429` responses carry `Retry-After`. To enable console login, create a free Supabase project and set `SUPABASE_URL` (backend) + `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` (frontend, see `web/.env.example`) — session tokens are verified against the project's public JWKS, so no secret is needed on current Supabase projects. See `docs/project_execution.md`.
 
 ```bash
 curl -X POST http://localhost:8000/forecasts \
