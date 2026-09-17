@@ -43,7 +43,7 @@ def test_embedded_worker_processes_a_real_job(client, fake_redis, monkeypatch, a
         assert body["result"]["company"] == "Tata Consultancy Services"
 
 
-def test_create_worker_platform_choice():
+def test_create_worker_platform_choice(fake_redis):
     """create_worker() respects the platform: SimpleWorker on win32."""
     import sys
 
