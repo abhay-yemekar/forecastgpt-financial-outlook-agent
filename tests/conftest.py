@@ -75,6 +75,7 @@ def fake_redis(monkeypatch):
     monkeypatch.setattr("app.ratelimit.Redis", _FakeRedisClass)
     monkeypatch.setattr("app.jobs.Redis", _FakeRedisClass)
     monkeypatch.setattr("app.quota.Redis", _FakeRedisClass)
+    monkeypatch.setattr("app.worker.Redis", _FakeRedisClass)
     return _FakeRedisClass.fake
 
 

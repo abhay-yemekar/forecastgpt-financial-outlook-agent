@@ -26,6 +26,32 @@ seed_companies()
 app = FastAPI(title="ForecastGPT - Financial Outlook Agent")
 
 
+@app.on_event("startup")
+def _start_embedded_worker() -> None:
+    """EMBED_WORKER=1: run an RQ worker thread inside this process so ONE
+    container serves the site, accepts submissions, and executes forecasts
+    (Render free / HF Spaces / demo deployments)."""
+    if not settings.EMBED_WORKER:
+        return
+    import threading
+
+    from app.worker import create_worker
+
+    def _run() -> None:
+        try:
+            worker = create_worker()
+            # work() installs signal handlers, which only the main thread may
+            # do — suppress for this embedded instance (its daemon thread
+            # dies with the process anyway).
+            worker._install_signal_handlers = lambda: None  # type: ignore[method-assign]
+            worker.work()
+        except Exception as e:  # pragma: no cover - background safety net
+            log.error(f"Embedded RQ worker stopped: {e}")
+
+    threading.Thread(target=_run, name="rq-embedded-worker", daemon=True).start()
+    log.info("Embedded RQ worker started (EMBED_WORKER=1) — single-container mode.")
+
+
 class ForecastRequest(BaseModel):
     query: str
     company: str  # NSE symbol or screener slug, e.g. "TCS" or "INFY"

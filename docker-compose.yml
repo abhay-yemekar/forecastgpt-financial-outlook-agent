@@ -35,6 +35,9 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-10}
       RATE_LIMIT_GET_PER_MINUTE: ${RATE_LIMIT_GET_PER_MINUTE:-120}
+      # EMBED_WORKER=1 makes this single service run its own worker
+      # (single-container mode) — keep 0 when the separate worker runs.
+      EMBED_WORKER: ${EMBED_WORKER:-0}
     depends_on:
       - redis
 
@@ -59,6 +62,9 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-10}
       RATE_LIMIT_GET_PER_MINUTE: ${RATE_LIMIT_GET_PER_MINUTE:-120}
+      # EMBED_WORKER=1 makes this single service run its own worker
+      # (single-container mode) — keep 0 when the separate worker runs.
+      EMBED_WORKER: ${EMBED_WORKER:-0}
     depends_on:
       - redis
 
