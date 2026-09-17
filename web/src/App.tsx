@@ -20,6 +20,8 @@ import ResultView from './components/ResultView'
 import HistoryPanel from './components/HistoryPanel'
 import Footer from './components/Footer'
 import AuthPage from './pages/AuthPage'
+import DevelopersPage from './pages/DevelopersPage'
+import LegalPage from './pages/LegalPage'
 
 const KEY_STORAGE = 'fgpt_api_key'
 const JOB_STORAGE = 'fgpt_active_job'
@@ -27,18 +29,17 @@ const DEFAULT_QUERY =
   'Analyze the latest quarterly results and give a qualitative outlook for the next quarter.'
 const POLL_MS = 3000
 
-type View = 'landing' | 'auth' | 'app'
-type Route = 'landing' | 'auth' | 'console' | 'sample'
+type View = 'landing' | 'auth' | 'app' | 'developers' | 'privacy' | 'terms'
+type Route = 'landing' | 'auth' | 'console' | 'sample' | 'developers' | 'privacy' | 'terms'
 
 function currentRoute(): Route {
   const h = window.location.hash.replace(/^#\/?/, '')
-  if (h === 'sample' || h === 'console') return h
-  if (h === 'auth') return 'auth'
+  if (['sample', 'console', 'auth', 'developers', 'privacy', 'terms'].includes(h)) return h as Route
   return 'landing'
 }
 
 function goRoute(route: Route) {
-  const target = route === 'console' ? '#/console' : route === 'sample' ? '#/sample' : route === 'auth' ? '#/auth' : '#/'
+  const target = route === 'landing' ? '#/' : `#/${route}`
   if (window.location.hash !== target) window.location.hash = target
 }
 
@@ -137,6 +138,8 @@ export default function App() {
         }
       } else if (route === 'auth') {
         setView(session ? 'app' : 'auth')
+      } else if (route === 'developers' || route === 'privacy' || route === 'terms') {
+        setView(route)
       } else {
         setView('landing')
       }
@@ -272,7 +275,7 @@ export default function App() {
   }, [stopPolling, applyRoute])
 
   const navTo = useCallback(
-    (v: 'landing' | 'app' | 'auth') => {
+    (v: 'landing' | 'app' | 'auth' | 'developers' | 'privacy' | 'terms') => {
       const route: Route = v === 'app' ? 'console' : v
       applyRoute(route)
       goRoute(route)
@@ -305,12 +308,18 @@ export default function App() {
           onSample={onSample}
           onLaunch={() => navTo('app')}
           onAuth={() => navTo('auth')}
+          onDevelopers={() => navTo('developers')}
         />
       )}
 
       {view === 'auth' && (
         <AuthPage session={session} onSession={setSession} onReady={() => navTo('app')} />
       )}
+
+      {view === 'developers' && <DevelopersPage />}
+
+      {view === 'privacy' && <LegalPage kind="privacy" />}
+      {view === 'terms' && <LegalPage kind="terms" />}
 
       {view === 'app' && (
         <div className="console">
