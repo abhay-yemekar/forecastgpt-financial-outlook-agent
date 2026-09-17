@@ -30,11 +30,8 @@ chat req/day (the app's quotas already bound us inside this).
 2. Database page → **Connect → Redis Protocol** (NOT "REST API") → copy the
    URL. It looks like `rediss://default:<long-password>@<name>.upstash.io:6379`
    — note **rediss** (TLS is mandatory on Upstash).
-3. Verify from your machine (PowerShell):
-   ```powershell
-   # requires redis-cli; skip if unavailable — §3's /ready check covers it
-   ```
-   **Expected later:** `GET /ready` shows `"redis":"ok"` — that is the real gate.
+3. No local verification needed — §3's `GET /ready` check is the real gate
+   (it must show `"redis":"ok"`).
 
 ## 2. Render — ONE service runs everything (Path A, recommended)
 
@@ -65,7 +62,7 @@ server, no CORS setup (site + API share one origin).
 | `QUOTA_FREE_PER_DAY` / `QUOTA_GLOBAL_PER_DAY` | `3` / `400` |
 | `RATE_LIMIT_PER_MINUTE` / `RATE_LIMIT_GET_PER_MINUTE` | `10` / `120` |
 | `ALLOWED_DOC_HOSTS` | leave UNSET (companies host filings on their own domains) |
-| `DATABASE_URL` | *(omit)* — logs use the SQLite fallback; they're ephemeral on Render and reset on redeploy. Optional: Supabase Postgres pooler URI (port `6543`, percent-encode the password) for durable logs |
+| `DATABASE_URL` | **Recommended for launch: omit entirely** — logs then use the SQLite fallback (ephemeral on Render; reset on redeploy). To keep durable logs in Supabase Postgres, see §2b below — the URI needs a small format change |
 
    **Expected:** first deploy builds the Docker image (Node builds the
    frontend inside it, then Python) — **5–10 minutes**. "Live" appears in the
@@ -167,11 +164,11 @@ locally first; never push a broken `web/`.
   include Render's egress or be disabled (default).
 
 **D-03 · `/ready` → `"database":"unavailable"`**
-You set a bad `DATABASE_URL`. Test the URI locally: it must be a full
-SQLAlchemy URL (`postgresql+psycopg2://…` or `mysql+pymysql://…`). Note:
-`psycopg2-binary` is NOT currently in requirements — for Supabase Postgres
-either add it (one line + redeploy) or simply omit `DATABASE_URL` and accept
-the SQLite fallback for logs.
+`DATABASE_URL` is malformed or unreachable. Checklist: scheme must be
+`postgresql+psycopg2://` (not `postgresql://`); use the **pooler** host
+(`…pooler.supabase.com:6543`), not `db.<ref>.supabase.co:5432` (IPv6-only);
+password percent-encoded; driver `psycopg2-binary` ships in requirements
+since PR #18. Or omit `DATABASE_URL` entirely → SQLite fallback for logs.
 
 **D-04 · Site renders but every submit → `503 Job queue unavailable`**
 The API lost Redis mid-run, or `EMBED_WORKER` was forgotten AND no external
@@ -222,6 +219,13 @@ Free tier = 10k commands/day. Biggest consumers: status polling + the
 embedded worker's queue polling. Polling at 3 s ≈ 1.7k cmds/hour/user —
 switch `POLL_MS` to 10 000 in `web/src/App.tsx` for a deployed frontend
 (~600/hour/user) or upgrade Upstash (pay-as-you-go pennies).
+
+**D-15 · Deploy/runtime error `No module named 'langchain_core.messages.block_translators…'`**
+Mixed langchain 1.x and 0.3.x packages in the environment (e.g. a manually
+installed `langchain-openai` 1.x next to pinned 0.3.x). requirements.txt now
+pins a coherent late-0.3 train — redeploy (Render rebuilds from main) or
+run `pip install -r requirements.txt` locally. See T-27 for the local
+recovery commands.
 
 **D-14 · Supabase login suddenly 401s for everyone**
 The free project **paused** after ~1 week without API traffic — restore it

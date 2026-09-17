@@ -253,6 +253,16 @@ Unset allows any public https host. Remove the variable or add the host.
 SSRF guardrails refusing private/loopback targets — by design. Documents
 must come from publicly resolvable hosts.
 
+**T-27 · `No module named 'langchain_core.messages.block_translators.langchain_v0'`** (forecast fails at 'Running the agent')
+Mixed langchain package generations in the venv — a manually installed
+`langchain-openai` 1.x next to pinned 0.3.x packages.
+Fix: `git pull`, then `pip install -r requirements.txt` (the family is now
+pinned as one coherent train: langchain 0.3.27 / core 0.3.86 / community
+0.3.27 / ollama 0.3.10 / openai 0.3.35), restart the worker and API.
+Verify: `python -c "import langchain_core.messages.block_translators.langchain_v0"`
+must succeed, then retry the forecast (quota is auto-refunded for the
+failed ones).
+
 **T-25 · `[WinError 10013] An attempt was made to access a socket in a way forbidden by its access permissions` (uvicorn start)**
 Port 8000 is taken or blocked. Two causes, in order of likelihood:
 1. Another process holds it (a previous uvicorn that never died, another
