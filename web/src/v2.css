@@ -323,6 +323,18 @@
   align-items: start;
 }
 
+/* Same narrow-screen guard as dev-grid: long headings must wrap, not
+   widen the grid track. */
+.solution-grid > *,
+.solution-point > div {
+  min-width: 0;
+}
+
+.solution-point h3,
+.solution-point p {
+  overflow-wrap: break-word;
+}
+
 .solution-points {
   display: flex;
   flex-direction: column;
@@ -367,6 +379,18 @@
   width: 100%;
 }
 
+/* recharts measures on mount; without min-width:0 the measured width
+   pins the grid track and overflows narrow viewports. */
+.solution-metrics > *,
+.solution-preview,
+.metric-card {
+  min-width: 0;
+}
+
+.metric-card .metric-chart {
+  overflow: hidden;
+}
+
 /* ---------- live sample ---------- */
 
 .sample-cta {
@@ -391,6 +415,16 @@
   grid-template-columns: 1fr 1.1fr;
   gap: 36px;
   align-items: center;
+}
+
+/* Code blocks must not widen grid tracks on narrow screens — the pre
+   itself scrolls instead (grid items default to min-width: auto). */
+.dev-grid > * {
+  min-width: 0;
+}
+
+.dev-code pre {
+  max-width: 100%;
 }
 
 .dev-code {
@@ -632,6 +666,18 @@
     grid-template-columns: 1fr;
   }
 
+  /* Two-up metric cards are too tight on phones — single column. */
+  .solution-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  /* The 4-column footer grid overflows narrow phones (min-content of the
+     email chip alone is ~200px) — stack it instead. */
+  .site-footer-main {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
   .nav-links {
     display: none;
   }
@@ -656,4 +702,183 @@
   .auth-brand {
     order: 2;
   }
+}
+/* ---------- pages ---------- */
+
+.page-narrow {
+  max-width: 860px;
+  width: calc(100% - 40px);
+  margin: 0 auto 40px;
+}
+
+.page-title {
+  font-size: clamp(28px, 4vw, 40px);
+  margin-bottom: 12px;
+}
+
+.page-section {
+  font-size: 18px;
+  margin: 26px 0 10px;
+  color: var(--text);
+}
+
+.ep-table {
+  display: flex;
+  flex-direction: column;
+}
+
+.ep-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.ep-row:last-child {
+  border-bottom: none;
+}
+
+.ep-row code {
+  flex: none;
+}
+
+/* ---------- prompt presets ---------- */
+
+.prompt-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.prompt-group {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.prompt-group summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 13.5px;
+  color: var(--text);
+  list-style: none;
+}
+
+.prompt-group summary::-webkit-details-marker {
+  display: none;
+}
+
+.pg-icon {
+  color: var(--cyan);
+}
+
+.pg-count {
+  margin-left: auto;
+  color: var(--faint);
+  font-size: 11px;
+}
+
+.pg-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 10px 12px;
+}
+
+.pg-prompt {
+  text-align: left;
+  font-size: 13px;
+  padding: 9px 12px;
+  color: var(--muted);
+  background: rgba(5, 6, 15, 0.4);
+}
+
+.pg-prompt:hover {
+  color: var(--text);
+  border-color: var(--violet);
+  transform: none;
+}
+
+.pg-prompt.active {
+  border-color: var(--violet);
+  color: var(--text);
+}
+
+/* ---------- contact ---------- */
+
+.contact-card {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px 26px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.contact-identity {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.contact-identity > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.contact-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 18px;
+  color: #fff;
+  background: var(--grad);
+}
+
+.contact-links {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.contact-links a {
+  text-decoration: none;
+}
+
+.contact-links a:hover {
+  border-color: var(--violet);
+  color: var(--text);
+}
+
+.footer-legal {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.footer-legal button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.footer-legal button:hover {
+  color: var(--text);
+  transform: none;
+  border-color: transparent;
 }

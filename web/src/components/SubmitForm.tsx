@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { Company } from '../types'
+import { PROMPT_GROUPS } from '../content/prompts'
 
 interface Props {
   apiKey: string
@@ -119,12 +120,59 @@ export default function SubmitForm({
             </option>
           ))}
         </select>
+        <details className="key-help">
+          <summary className="muted small">Company not listed?</summary>
+          <p className="muted small">
+            The registry grows release by release. Request an addition via{' '}
+            <a href="mailto:yemekarabhays@gmail.com?subject=ForecastGPT%20company%20request">email</a>{' '}
+            or a{' '}
+            <a
+              href="https://github.com/abhay-yemekar/forecastgpt-financial-outlook-agent/issues/new?title=Company%20request%3A%20"
+              target="_blank"
+              rel="noreferrer"
+            >
+              GitHub issue
+            </a>{' '}
+            — include the NSE symbol. Self-hosters can add it in one line
+            (`SEED_COMPANIES` in <code>app/companies.py</code>).
+          </p>
+        </details>
       </label>
 
-      <label className="field">
-        <span>Ask</span>
-        <textarea rows={3} value={query} onChange={(e) => setQuery(e.target.value)} />
-      </label>
+      <div className="field">
+        <span>Ask — pick a starting point or write your own</span>
+        <div className="prompt-groups">
+          {PROMPT_GROUPS.map((g) => (
+            <details className="prompt-group" key={g.category}>
+              <summary>
+                <span className="pg-icon">{g.icon}</span>
+                {g.category}
+                <span className="pg-count">{g.prompts.length}</span>
+              </summary>
+              <div className="pg-list">
+                {g.prompts.map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    className={`pg-prompt ${query === p ? 'active' : ''}`}
+                    onClick={() => setQuery(p)}
+                    title="Use this prompt"
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            </details>
+          ))}
+        </div>
+        <textarea
+          rows={3}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="What do you want to know about next quarter?"
+          style={{ marginTop: 10 }}
+        />
+      </div>
 
       <button className="primary submit-btn" disabled={!ready} onClick={() => onSubmit(company, query)}>
         {submitting ? 'Submitting…' : 'Generate forecast'}

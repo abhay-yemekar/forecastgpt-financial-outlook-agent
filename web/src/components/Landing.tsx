@@ -11,6 +11,7 @@ interface Props {
   onSample: () => void
   onLaunch: () => void
   onAuth: () => void
+  onDevelopers: () => void
 }
 
 const PROBLEMS = [
@@ -85,7 +86,7 @@ function StatTile({ label, value }: { label: string; value: number | null }) {
   )
 }
 
-export default function Landing({ stats, onSample, onLaunch, onAuth }: Props) {
+export default function Landing({ stats, onSample, onLaunch, onAuth, onDevelopers }: Props) {
   const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
   void scrollTo
 
@@ -289,15 +290,13 @@ export default function Landing({ stats, onSample, onLaunch, onAuth }: Props) {
                 uses. Async by design — submit, poll, get stable JSON. Rate limits
                 and per-key quotas are built in.
               </p>
-              <a
+              <button
                 className="ghost"
-                style={{ display: 'inline-block', marginTop: 16, textDecoration: 'none' }}
-                href="https://github.com/abhay-yemekar/forecastgpt-financial-outlook-agent#-api-usage"
-                target="_blank"
-                rel="noreferrer"
+                style={{ marginTop: 16 }}
+                onClick={onDevelopers}
               >
                 Full API reference →
-              </a>
+              </button>
             </div>
           </Reveal>
           <Reveal delay={140}>
@@ -323,7 +322,42 @@ export default function Landing({ stats, onSample, onLaunch, onAuth }: Props) {
         <Faq />
       </section>
 
-      {/* ---------- 10. FINAL CTA ---------- */}
+      {/* ---------- 10. CONTACT ---------- */}
+      <section className="section" id="contact">
+        <Reveal>
+          <h2 className="section-title">
+            Talk to the <span className="grad-text">builder</span>
+          </h2>
+          <p className="section-sub muted">
+            Feature requests, company additions, self-hosting help, or just
+            feedback — it all lands directly with me.
+          </p>
+        </Reveal>
+        <Reveal delay={120}>
+          <div className="contact-card glass hover-lift">
+            <div className="contact-identity">
+              <span className="contact-avatar grad-text">AY</span>
+              <div>
+                <strong>Abhay Yemekar</strong>
+                <span className="muted small">Creator &amp; maintainer</span>
+              </div>
+            </div>
+            <div className="contact-links">
+              <a className="chip" href="mailto:yemekarabhays@gmail.com">
+                ✉ yemekarabhays@gmail.com
+              </a>
+              <a className="chip" href="https://www.linkedin.com/in/abhayyemekar/" target="_blank" rel="noreferrer">
+                in LinkedIn
+              </a>
+              <a className="chip" href="https://github.com/abhay-yemekar" target="_blank" rel="noreferrer">
+                ⌥ GitHub
+              </a>
+            </div>
+          </div>
+        </Reveal>
+      </section>
+
+      {/* ---------- 11. FINAL CTA ---------- */}
       <section className="section">
         <Reveal>
           <div className="cta-strip glass">

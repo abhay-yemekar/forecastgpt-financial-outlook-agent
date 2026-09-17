@@ -1,4 +1,10 @@
-export default function Footer({ onNav }: { onNav: (v: 'landing' | 'app') => void }) {
+import { CONTACT } from '../content/site'
+
+interface Props {
+  onNav: (v: 'landing' | 'app' | 'auth' | 'developers' | 'privacy' | 'terms') => void
+}
+
+export default function Footer({ onNav }: Props) {
   const year = new Date().getFullYear()
   return (
     <footer className="site-footer">
@@ -12,33 +18,39 @@ export default function Footer({ onNav }: { onNav: (v: 'landing' | 'app') => voi
             Quarterly outlook reports for Indian listed companies — grounded in
             real filings, delivered as an API and a console.
           </p>
-          <span className="chip mono small">MIT License</span>
+          <div className="contact-links">
+            <a className="chip" href={`mailto:${CONTACT.email}`}>
+              ✉ {CONTACT.email}
+            </a>
+            <a className="chip" href={CONTACT.linkedin} target="_blank" rel="noreferrer">
+              in LinkedIn
+            </a>
+            <a className="chip" href={CONTACT.github} target="_blank" rel="noreferrer">
+              ⌥ GitHub
+            </a>
+          </div>
         </div>
 
         <div className="footer-col">
           <h4>Product</h4>
           <button onClick={() => onNav('landing')}>Overview</button>
           <button onClick={() => onNav('app')}>Console</button>
-          <a href="https://github.com/abhay-yemekar/forecastgpt-financial-outlook-agent#readme" target="_blank" rel="noreferrer">
-            How it works
-          </a>
+          <button onClick={() => onNav('auth')}>Sign in</button>
         </div>
 
         <div className="footer-col">
           <h4>Developers</h4>
-          <a href="https://github.com/abhay-yemekar/forecastgpt-financial-outlook-agent" target="_blank" rel="noreferrer">
+          <button onClick={() => onNav('developers')}>API reference</button>
+          <a href={CONTACT.repo} target="_blank" rel="noreferrer">
             GitHub repository
           </a>
-          <a href="https://github.com/abhay-yemekar/forecastgpt-financial-outlook-agent#-api-usage" target="_blank" rel="noreferrer">
-            API reference
-          </a>
-          <a href="https://github.com/abhay-yemekar/forecastgpt-financial-outlook-agent/blob/main/docs/DEPLOY.md" target="_blank" rel="noreferrer">
+          <a href={CONTACT.deployGuide} target="_blank" rel="noreferrer">
             Self-host guide
           </a>
         </div>
 
         <div className="footer-col">
-          <h4>Data</h4>
+          <h4>Data sources</h4>
           <a href="https://www.screener.in" target="_blank" rel="noreferrer">
             screener.in
           </a>
@@ -52,9 +64,13 @@ export default function Footer({ onNav }: { onNav: (v: 'landing' | 'app') => voi
       </div>
 
       <div className="footer-bar">
-        <span className="faint small">© {year} ForecastGPT · open source, MIT</span>
-        <span className="faint small">
-          Not investment advice. Reports are AI-generated from public filings.
+        <span className="faint small">© {year} ForecastGPT · {CONTACT.name} · MIT License</span>
+        <span className="footer-legal faint small">
+          <button onClick={() => onNav('privacy')}>Privacy Policy</button>
+          <span>·</span>
+          <button onClick={() => onNav('terms')}>Terms of Use</button>
+          <span>·</span>
+          <span>Not investment advice — AI-generated from public filings.</span>
         </span>
       </div>
     </footer>

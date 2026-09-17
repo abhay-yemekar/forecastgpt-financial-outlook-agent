@@ -1,8 +1,8 @@
 import type { QuotaInfo } from '../api'
 
 interface Props {
-  view: 'landing' | 'auth' | 'app'
-  onNav: (v: 'landing' | 'app' | 'auth') => void
+  view: 'landing' | 'auth' | 'app' | 'developers' | 'privacy' | 'terms'
+  onNav: (v: 'landing' | 'app' | 'auth' | 'developers' | 'privacy' | 'terms') => void
   quota: QuotaInfo | null
   signedInEmail: string | null
   onSignOut: () => void
@@ -12,8 +12,8 @@ const SECTIONS = [
   { id: 'problem', label: 'Why' },
   { id: 'how', label: 'How it works' },
   { id: 'sample', label: 'Sample' },
-  { id: 'developers', label: 'API' },
   { id: 'faq', label: 'FAQ' },
+  { id: 'contact', label: 'Contact' },
 ]
 
 export default function Nav({ view, onNav, quota, signedInEmail, onSignOut }: Props) {
@@ -56,6 +56,9 @@ export default function Nav({ view, onNav, quota, signedInEmail, onSignOut }: Pr
           </span>
         )}
 
+        <button className="nav-link-btn" onClick={() => onNav('developers')}>
+          API
+        </button>
         {signedInEmail ? (
           <>
             <span className="chip" title={signedInEmail}>
