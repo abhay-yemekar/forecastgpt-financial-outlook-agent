@@ -41,7 +41,7 @@ def _start_embedded_worker() -> None:
 
     def _run() -> None:
         try:
-            worker = create_worker()
+            worker = create_worker(embedded=True)
             # work() installs signal handlers, which only the main thread may
             # do — suppress for this embedded instance (its daemon thread
             # dies with the process anyway).
