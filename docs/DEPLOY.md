@@ -63,7 +63,7 @@ server, no CORS setup (site + API share one origin).
 | `QUOTA_FREE_PER_DAY` / `QUOTA_GLOBAL_PER_DAY` | `3` / `400` |
 | `RATE_LIMIT_PER_MINUTE` / `RATE_LIMIT_GET_PER_MINUTE` | `10` / `120` |
 | `ALLOWED_DOC_HOSTS` | leave UNSET (companies host filings on their own domains) |
-| `DATABASE_URL` | **Recommended for launch: omit entirely** — logs then use the SQLite fallback (ephemeral on Render; reset on redeploy). To keep durable logs in Supabase Postgres, see §2b below — the URI needs a small format change |
+| `DATABASE_URL` | Supabase Postgres pooler URL — **set it** (§2b below; the URI needs two edits). Left empty → SQLite fallback inside the container: users, API keys and history are wiped on every restart and redeploy |
 
    **Expected:** first deploy builds the Docker image (Node builds the
    frontend inside it, then Python) — **5–10 minutes**. "Live" appears in the
@@ -75,6 +75,48 @@ server, no CORS setup (site + API share one origin).
    the service build failed → D-01.
 5. Open the site root → landing renders with live counters → **See a live
    sample** works (no login).
+
+## 2b. Supabase Postgres — keep users, keys and history (5 min)
+
+Without `DATABASE_URL` the app writes to a SQLite file inside the container,
+which Render wipes on every restart and redeploy.
+
+1. Supabase → your project → **Connect** (top bar) → **Connection String**
+   → Type **URI**, Method **Transaction pooler**. Not "Direct connection":
+   it is IPv6-only, and Render can't reach it.
+2. Copy it and make two edits:
+   - `postgresql://` → `postgresql+psycopg2://`
+   - `[YOUR-PASSWORD]` (brackets included) → the **database** password
+     (Project Settings → Database; not your Supabase login). Percent-encode
+     symbols in it: `@` → `%40`, `#` → `%23`, `:` → `%3A`, `/` → `%2F`,
+     `?` → `%3F`, `%` → `%25`, `&` → `%26`. A raw `@` stops the app at
+     startup (D-03); a letters-and-digits password needs no encoding.
+
+   Result:
+   `postgresql+psycopg2://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres`
+3. Render → **Environment** → set `DATABASE_URL` → save **and deploy**.
+   "Save only" stores the value but applies it only at the next deploy
+   (**Manual Deploy → Deploy latest commit**).
+
+At startup the app creates its four tables and turns on row-level security
+for each, with no policies. Supabase's public Data API then returns no rows
+from them, even with the publishable key the site serves at `/config`. The
+app connects as the tables' owner, which RLS doesn't restrict. Don't disable
+RLS on these tables.
+
+**Verify (gate):**
+- Render → Logs: `Using explicit DATABASE_URL (postgresql).` and
+  `Row-level security enabled on 4 app tables.`
+- `companies` is seeded at startup, so any rows here mean RLS is off:
+  ```powershell
+  curl.exe "https://<ref>.supabase.co/rest/v1/companies?select=*" -H "apikey: <publishable key>"
+  # → []
+  ```
+- Supabase → **Advisors → Security Advisor**: no "RLS disabled" errors.
+
+A free Supabase project pauses after about a week without traffic; the
+app's own traffic keeps it awake. If it does pause, restore it from the
+dashboard (D-03).
 
 ## 3. Supabase — allow the new origin (5 min)
 
@@ -166,12 +208,21 @@ locally first; never push a broken `web/`.
 - Upstash → your DB → check the region isn't blocking; "Allowlist" must
   include Render's egress or be disabled (default).
 
-**D-03 · `/ready` → `"database":"unavailable"`**
-`DATABASE_URL` is malformed or unreachable. Checklist: scheme must be
-`postgresql+psycopg2://` (not `postgresql://`); use the **pooler** host
-(`…pooler.supabase.com:6543`), not `db.<ref>.supabase.co:5432` (IPv6-only);
-password percent-encoded; driver `psycopg2-binary` ships in requirements
-since PR #18. Or omit `DATABASE_URL` entirely → SQLite fallback for logs.
+**D-03 · Deploy fails at startup, or `/ready` → `"database":"unavailable"`**
+`DATABASE_URL` is malformed or unreachable. When a deploy fails, Render keeps
+the previous instance live, so the site stays up on the old settings.
+- `DATABASE_URL: the password contains a raw '@'` (older builds:
+  `could not translate host name "…@….pooler.supabase.com"`, which also
+  prints the rest of the password to the logs): percent-encode `@` in the
+  password as `%40` (§2b), or reset it to letters and digits.
+- Scheme `postgresql+psycopg2://`; the **pooler** host
+  (`…pooler.supabase.com:6543`), not `db.<ref>.supabase.co:5432`
+  (IPv6-only); driver `psycopg2-binary` ships in requirements since PR #18.
+- `password authentication failed`: wrong database password; reset it in
+  Supabase → Project Settings → Database.
+- Connection timeouts after a quiet week: the free Supabase project paused;
+  restore it from the Supabase dashboard.
+- Or omit `DATABASE_URL` → SQLite fallback (wiped on every restart).
 
 **D-04 · Site renders but every submit → `503 Job queue unavailable`**
 The API lost Redis mid-run, or `EMBED_WORKER` was forgotten AND no external

@@ -1,4 +1,5 @@
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, make_url, text
+from sqlalchemy.exc import ArgumentError
 from sqlalchemy.orm import sessionmaker
 
 from app.config import settings
@@ -20,11 +21,30 @@ def _mysql_url() -> str:
     )
 
 
+def check_database_url(raw: str) -> None:
+    """Reject a DATABASE_URL that would put part of the password in the host.
+
+    The URL parser ends the password at its first '@', so a raw '@' inside
+    the password moves the rest of it into the host name, and the driver's
+    DNS error then prints it to the logs. Errors here never echo the URL.
+    """
+    try:
+        host = make_url(raw).host or ""
+    except ArgumentError:
+        raise RuntimeError("DATABASE_URL could not be parsed; see docs/DEPLOY.md, D-03.") from None
+    if "@" in host:
+        raise RuntimeError(
+            "DATABASE_URL: the password contains a raw '@'. Percent-encode it as %40 "
+            "(see docs/DEPLOY.md, D-03)."
+        )
+
+
 def _create_engine_with_fallback():
     global storage_backend
 
     # Explicit override wins: no probing, no fallback logic.
     if settings.DATABASE_URL:
+        check_database_url(settings.DATABASE_URL)
         engine = create_engine(settings.DATABASE_URL, pool_pre_ping=True)
         storage_backend = engine.dialect.name
         log.info(f"Using explicit DATABASE_URL ({storage_backend}).")
