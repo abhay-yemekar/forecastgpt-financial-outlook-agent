@@ -105,12 +105,14 @@ python -m app.cli key create  --email you@example.com --password your-secret
 ### 3b. (Optional) Console login via Supabase
 
 1. Free project at [supabase.com](https://supabase.com).
-2. Root `.env`: `SUPABASE_URL=<Project URL>`. Current projects sign tokens
+2. Root `.env`: `SUPABASE_URL=<Project URL>` and
+   `SUPABASE_PUBLISHABLE_KEY=<sb_publishable_…>` (the web app reads both from
+   `GET /config`). Current projects sign tokens
    with asymmetric keys — the backend verifies them against the project's
    public JWKS automatically. (`SUPABASE_JWT_SECRET` only for legacy
    projects.)
-3. `web\.env` (copy `web/.env.example`): `VITE_SUPABASE_URL`,
-   `VITE_SUPABASE_ANON_KEY`.
+3. Optional: `web\.env` (copy `web/.env.example`) with `VITE_SUPABASE_URL` and
+   `VITE_SUPABASE_PUBLISHABLE_KEY`, only to override `/config` in a local build.
 4. Google sign-in: Supabase → Authentication → Providers → Google (OAuth
    client redirect: `https://<ref>.supabase.co/auth/v1/callback`), and add
    your app URL under Authentication → URL Configuration.
@@ -298,7 +300,8 @@ and restart the server (§3b).
 
 **T-17 · Login 401 `Invalid session token`**
 Usually the frontend and backend point at different Supabase projects.
-Verify backend `.env` `SUPABASE_URL` == frontend `VITE_SUPABASE_URL`. Also
+Verify backend `.env` `SUPABASE_URL` matches what `GET /config` serves (and
+`VITE_SUPABASE_URL`, if a local `web\.env` overrides it). Also
 check system clock (skew >60s breaks token validity).
 
 **T-18 · Google sign-in loops or `redirect_uri_mismatch`**

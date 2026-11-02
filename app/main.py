@@ -204,6 +204,24 @@ def my_quota(
     return {"quota": "free_tier", "kind": "user", "email": principal.label, **usage}
 
 
+@app.get("/config")
+def public_config():
+    """Browser-safe runtime config for the web app, read once at boot.
+
+    Serving this from the server's env (instead of Vite build-time vars)
+    keeps one built image deployable anywhere: login works as soon as the
+    host sets SUPABASE_URL + SUPABASE_PUBLISHABLE_KEY, no rebuild needed."""
+    key = settings.SUPABASE_PUBLISHABLE_KEY or settings.SUPABASE_ANON_KEY
+    enabled = bool(settings.SUPABASE_URL and key)
+    return {
+        "auth": {
+            "enabled": enabled,
+            "supabase_url": settings.SUPABASE_URL if enabled else None,
+            "supabase_key": key if enabled else None,
+        }
+    }
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}

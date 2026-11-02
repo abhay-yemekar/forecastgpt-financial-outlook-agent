@@ -12,7 +12,7 @@ free, no credit card).
 | # | Item | Status |
 |---|---|---|
 | 1 | All roadmap phases merged (main ≥ PR #15) | ✅ done |
-| 2 | **Supabase project** created; `SUPABASE_URL` + `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` known | ✅ done (Phase 5) |
+| 2 | **Supabase project** created; `SUPABASE_URL` + publishable key (`sb_publishable_…`) known | ✅ done (Phase 5) |
 | 3 | **Google AI Studio key** — [aistudio.google.com](https://aistudio.google.com) → Get API key | ⬜ do now |
 | 4 | **Upstash** account (sign in with GitHub) | ⬜ do now |
 | 5 | **Render** account (sign in with GitHub) | ⬜ do now |
@@ -59,6 +59,7 @@ server, no CORS setup (site + API share one origin).
 | `LLM_MODEL` | `gemini-2.0-flash-lite` |
 | `EMBEDDING_MODEL` | `text-embedding-004` |
 | `SUPABASE_URL` | your Supabase Project URL |
+| `SUPABASE_PUBLISHABLE_KEY` | Supabase → Project Settings → API Keys → publishable key (browser-safe; the site reads it from `GET /config` to show sign-in) |
 | `QUOTA_FREE_PER_DAY` / `QUOTA_GLOBAL_PER_DAY` | `3` / `400` |
 | `RATE_LIMIT_PER_MINUTE` / `RATE_LIMIT_GET_PER_MINUTE` | `10` / `120` |
 | `ALLOWED_DOC_HOSTS` | leave UNSET (companies host filings on their own domains) |
@@ -197,10 +198,15 @@ must include your **exact** deployed origin. The Google OAuth client (in
 Google Cloud Console) must list `https://<ref>.supabase.co/auth/v1/callback`.
 
 **D-09 · Login works locally but 401s deployed (or vice-versa)**
-Frontend and backend point at different Supabase projects:
-`VITE_SUPABASE_URL` (frontend build) must equal `SUPABASE_URL` (backend).
-Remember `VITE_*` values are baked at **build time** — after changing them,
-redeploy the service so `web/dist` is rebuilt.
+Frontend and backend point at different Supabase projects. The site reads
+its Supabase settings from `GET /config` (backend `SUPABASE_URL` +
+`SUPABASE_PUBLISHABLE_KEY`), so check that endpoint first. If a build sets
+`VITE_SUPABASE_URL`, it overrides `/config` and must equal `SUPABASE_URL`;
+`VITE_*` values are baked at **build time**, so rebuild after changing them.
+
+**D-09a · Sign-in page says "Console login is not configured"**
+`GET /config` returns `"enabled": false`: set both `SUPABASE_URL` and
+`SUPABASE_PUBLISHABLE_KEY` on the service and restart it. No rebuild needed.
 
 **D-10 · Forecast fails: `not an allowed document source`**
 `ALLOWED_DOC_HOSTS` was set on Render, restricting fetches. Default (unset)

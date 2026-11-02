@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { authConfigured, supabase } from '../lib/supabase'
+import { useSupabase } from '../lib/supabase'
 
 export interface SessionInfo {
   email: string
@@ -18,8 +18,12 @@ export default function AuthPanel({ session, onSession }: Props) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const { supabase, loading } = useSupabase()
 
-  if (!authConfigured || !supabase) {
+  if (loading) {
+    return <p className="muted small auth-note">Checking sign-in options…</p>
+  }
+  if (!supabase) {
     return (
       <p className="muted small auth-note">
         Console login is not configured on this deployment — use developer mode (API key) below.
