@@ -30,8 +30,13 @@ def check_database_url(raw: str) -> None:
     """
     try:
         host = make_url(raw).host or ""
-    except ArgumentError:
-        raise RuntimeError("DATABASE_URL could not be parsed; see docs/DEPLOY.md, D-03.") from None
+    except (ArgumentError, ValueError):
+        # ValueError: a bad port, e.g. when the '@' before the host was
+        # encoded too, so "user:password..." is read as "host:port".
+        raise RuntimeError(
+            "DATABASE_URL could not be parsed. It needs exactly one raw '@', between the "
+            "password and the host; percent-encode any other '@' as %40 (see docs/DEPLOY.md, D-03)."
+        ) from None
     if "@" in host:
         raise RuntimeError(
             "DATABASE_URL: the password contains a raw '@'. Percent-encode it as %40 "

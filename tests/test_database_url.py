@@ -24,8 +24,16 @@ def test_raw_at_in_password_is_rejected_without_echoing_it():
     assert "secret" not in str(exc.value) and "tail99" not in str(exc.value)
 
 
-def test_unparsable_url_is_rejected_without_echoing_it():
+@pytest.mark.parametrize(
+    "url",
+    [
+        "not a url secret99",
+        # The separator '@' encoded too: the password is read as a port.
+        f"postgresql+psycopg2://postgres.ref:secret99%40{POOLER}",
+    ],
+)
+def test_unparsable_url_is_rejected_without_echoing_it(url):
     with pytest.raises(RuntimeError) as exc:
-        check_database_url("not a url secret99")
+        check_database_url(url)
     assert "secret99" not in str(exc.value)
-    assert exc.value.__cause__ is None
+    assert exc.value.__cause__ is None and exc.value.__suppress_context__

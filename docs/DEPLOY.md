@@ -92,7 +92,8 @@ which Render wipes on every restart and redeploy.
      `?` → `%3F`, `%` → `%25`, `&` → `%26`. A raw `@` stops the app at
      startup (D-03); a letters-and-digits password needs no encoding.
 
-   Result:
+   Result (exactly one raw `@`: the one before the host, which you never
+   encode):
    `postgresql+psycopg2://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres`
 3. Render → **Environment** → set `DATABASE_URL` → save **and deploy**.
    "Save only" stores the value but applies it only at the next deploy
@@ -215,6 +216,10 @@ the previous instance live, so the site stays up on the old settings.
   `could not translate host name "…@….pooler.supabase.com"`, which also
   prints the rest of the password to the logs): percent-encode `@` in the
   password as `%40` (§2b), or reset it to letters and digits.
+- `DATABASE_URL could not be parsed` (older builds: `ValueError: invalid
+  literal for int()`, which also prints part of the URL): usually the `@`
+  before the host was encoded too. Keep exactly one raw `@`, right before
+  `aws-0-…`.
 - Scheme `postgresql+psycopg2://`; the **pooler** host
   (`…pooler.supabase.com:6543`), not `db.<ref>.supabase.co:5432`
   (IPv6-only); driver `psycopg2-binary` ships in requirements since PR #18.
