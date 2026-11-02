@@ -72,7 +72,8 @@ export default function ResultView({
       <section className="fade-up d1">
         <h3 className="results-section-title">Quarter-over-quarter metrics</h3>
         <div className="metric-grid">
-          <svg width="0" height="0" aria-hidden="true">
+          {/* Out of the grid flow; as a grid item it took the first cell. */}
+          <svg width="0" height="0" aria-hidden="true" style={{ position: 'absolute' }}>
             <defs>
               <linearGradient id="bar-grad" x1="0" y1="1" x2="0" y2="0">
                 <stop offset="0%" stopColor="#8b5cf6" />

@@ -65,12 +65,13 @@ def test_self_test_disabled_starts_nothing(monkeypatch):
 
 
 @pytest.mark.parametrize(
-    ("base_url", "expect_ctx_check"),
-    [("https://generativelanguage.googleapis.com/v1beta/openai/", False), ("", None)],
+    ("base_url", "expect_ctx_check", "expect_batch"),
+    [("https://generativelanguage.googleapis.com/v1beta/openai/", False, 100), ("", None, None)],
 )
-def test_openai_compatible_embeddings_send_plain_strings(monkeypatch, base_url, expect_ctx_check):
-    """Gemini's OpenAI-compatible endpoint rejects token-ID arrays (501), so
-    a custom base URL must turn LangChain's pre-tokenizing off."""
+def test_openai_compatible_embeddings_send_plain_strings(monkeypatch, base_url, expect_ctx_check, expect_batch):
+    """Gemini's OpenAI-compatible endpoint rejects token-ID arrays (501) and
+    batches over 100 texts (400), so a custom base URL must turn LangChain's
+    pre-tokenizing off and cap the batch."""
     from app.ai.providers import OpenAIProvider
 
     captured = {}
@@ -85,3 +86,4 @@ def test_openai_compatible_embeddings_send_plain_strings(monkeypatch, base_url, 
     monkeypatch.setattr(settings, "OPENAI_BASE_URL", base_url)
     OpenAIProvider().get_embedding_model()
     assert captured.get("check_embedding_ctx_length") == expect_ctx_check
+    assert captured.get("chunk_size") == expect_batch

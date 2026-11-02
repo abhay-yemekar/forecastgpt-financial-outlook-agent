@@ -10,6 +10,7 @@ Filings name the same quarter many ways ("Q2 FY27", "Q2'27", "Q2 2026-27",
 
 import re
 from collections import Counter
+from datetime import date
 
 Period = tuple[int, int]
 
@@ -45,6 +46,22 @@ _PATTERNS = [
 
 def period_label(p: Period) -> str:
     return f"Q{p[1]} FY{p[0] % 100:02d}"
+
+
+def quarter_containing(d: date) -> Period:
+    return (d.year, 4) if d.month <= 3 else (d.year + 1, (d.month - 1) // 3)
+
+
+def previous_quarter(p: Period) -> Period:
+    return (p[0], p[1] - 1) if p[1] > 1 else (p[0] - 1, 4)
+
+
+def latest_ended_quarters(today: date, n: int) -> list[Period]:
+    """The n quarters that ended most recently before `today`, newest first."""
+    out = [previous_quarter(quarter_containing(today))]
+    while len(out) < n:
+        out.append(previous_quarter(out[-1]))
+    return out
 
 
 def _year(text: str) -> int:

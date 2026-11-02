@@ -69,6 +69,10 @@ class OpenAIProvider:
             # default; OpenAI-compatible APIs (Gemini, ...) accept only strings
             # and answer 501. Our chunks are far below any context limit.
             kwargs["check_embedding_ctx_length"] = False
+            # LangChain sends up to 1,000 texts per request; Gemini takes at
+            # most 100 ("at most 100 requests can be in one batch"), which
+            # three transcripts' chunks exceed.
+            kwargs["chunk_size"] = 100
         return mod.OpenAIEmbeddings(
             model=settings.EMBEDDING_MODEL,
             api_key=settings.OPENAI_API_KEY,

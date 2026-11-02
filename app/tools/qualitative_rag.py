@@ -10,6 +10,11 @@ from app.utils.text import clean_text
 
 log = get_logger("QualitativeAnalysisTool")
 
+# Gemini's free tier embeds at most 100 texts a minute, each chunk counting as
+# one, and a job also embeds its 6 theme queries. Three transcripts make about
+# 200 chunks; transcripts come newest first, so the cap keeps the latest call whole.
+MAX_CHUNKS = 80
+
 def _pdf_text(path: str) -> str:
     texts = []
     with pdfplumber.open(path) as pdf:
@@ -33,6 +38,9 @@ class QualitativeAnalysisTool:
 
         splitter = RecursiveCharacterTextSplitter(chunk_size=900, chunk_overlap=150)
         docs = splitter.create_documents(all_text)
+        if len(docs) > MAX_CHUNKS:
+            log.info(f"Indexing the first {MAX_CHUNKS} of {len(docs)} transcript chunks (embedding quota).")
+            docs = docs[:MAX_CHUNKS]
         self.vdb = FAISS.from_documents(docs, self.emb)
 
     def query_themes(self, queries: list[str], k=5) -> dict[str, Any]:

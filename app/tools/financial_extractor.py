@@ -68,22 +68,38 @@ _LABELS = {
 _LABEL_RES = {k: [re.compile(rf"(?:{p})", re.I) for p in pats] for k, pats in _LABELS.items()}
 
 # Highlight sentences: "INR Revenue of ₹ 731,880 Mn", "Net income ... ₹32.0 billion".
-# The gap may not cross a currency sign, so "USD Revenue of $ 7,642 Mn" never
-# borrows a later rupee figure.
+# The label must open the sentence or bullet, after at most a few company-level
+# words: in "O2C – Revenue ₹ 201,803 crore", "JPL PAT at ₹ 8,387 crore" or
+# "Net revenue of ₹ 9.6 bn" it names a segment or subsidiary. The gap may not
+# cross a currency sign, so "USD Revenue of $ 7,642 Mn" never borrows a later
+# rupee figure.
+_QUALIFIERS = r"(?:(?:inr|total|consolidated|record|quarterly|the)\s+){0,3}"
 _PROSE = {
     "total_revenue_inr_cr": re.compile(
-        rf"\b(?:total )?revenues?(?: from operations)?\b[^₹$\n]{{0,40}}?{_INR}\s*({_NUM})\s*{_UNIT}", re.I
+        rf"{_QUALIFIERS}revenues?(?: from operations)?\b[^₹$\n]{{0,40}}?{_INR}\s*({_NUM})\s*{_UNIT}", re.I
     ),
     "net_profit_inr_cr": re.compile(
-        rf"\b(?:net profit|net income|profit after tax(?:es)?|pat|profit for the (?:period|quarter))\b"
+        rf"{_QUALIFIERS}(?:net profit|net income|profit after tax(?:es)?|pat|profit for the (?:period|quarter))\b"
         rf"[^₹$\n]{{0,40}}?{_INR}\s*({_NUM})\s*{_UNIT}",
         re.I,
     ),
-    "operating_margin_pct": re.compile(r"\b(?:operating|ebit) margin\b[^%\n]{0,40}?(-?\d+(?:\.\d+)?)\s*%", re.I),
-    "net_margin_pct": re.compile(r"\bnet (?:profit |income )?margin\b[^%\n]{0,40}?(-?\d+(?:\.\d+)?)\s*%", re.I),
+    "operating_margin_pct": re.compile(
+        rf"{_QUALIFIERS}(?:it services )?(?:operating|ebit) margin\b[^%\n]{{0,40}}?(-?\d+(?:\.\d+)?)\s*%", re.I
+    ),
+    "net_margin_pct": re.compile(
+        rf"{_QUALIFIERS}net (?:profit |income )?margin\b[^%\n]{{0,40}}?(-?\d+(?:\.\d+)?)\s*%", re.I
+    ),
 }
-# Forward-looking sentences quote targets, not results.
+_SENTENCE_BREAK = re.compile(r"[.;|]\s+")
+# Forward-looking sentences quote targets, not results; the others cover
+# more than the quarter ("Annual Net Profit of ₹ 80,032 crores",
+# "for FY26, Gross Revenue at Rs. 80867.49 cr.", "H1 revenues grew").
 _GUIDANCE = re.compile(r"guidance|expect|outlook|in the range", re.I)
+_NOT_THE_QUARTER = re.compile(
+    r"\b(?:annual|full[- ]year|for the year|year ended|half[- ]year|six months|nine months|ytd|h[12]|9m)\b"
+    r"|\bfy\s?['’]?\d{2,4}\b|\bfiscal (?:year )?20\d{2}\b",
+    re.I,
+)
 
 # A unit line above a table: "₹ Crore % of Revenue", "(Amount in ₹ Crores)",
 # "In US $ million". Lines naming no money unit ("(in %)", "(Nos.)") end the
@@ -93,7 +109,7 @@ _UNIT_LINE_USD = re.compile(r"(?:us\s*)?\$\s*(?:in\s+)?(?:million|mn|m|billion|b
 _UNIT_LINE_OTHER = re.compile(r"^\(?\s*(?:in\s+)?(?:%|nos\.?|numbers?)\s*\)?$", re.I)
 
 _VALUE_TOKEN = re.compile(r"^\(?[-–]?[₹$]?\d[\d,]*(?:\.\d+)?%?\)?\**$|^[-–]$")
-_LEADER = re.compile(r"^(?:[a-z0-9]\)|\d+\.|[-•➢*])\s*", re.I)
+_LEADER = re.compile(r"^(?:[a-z0-9]\)|\d+\.|[-–•➢✓▪■●*])\s*", re.I)
 _YEAR_HEADER = re.compile(r"^\W*(?:particulars\W+)?(?:(?:fy|fiscal)\s?['’]?\d{2,4}\W*){2,}$", re.I)
 
 
@@ -250,7 +266,9 @@ def _candidates(pages: list[list[str]], period: Period | None) -> list[tuple[tup
                 continue
 
             row = _split_row(line)
-            if row and header:
+            # More amounts than period columns is a segment matrix
+            # ("PAT 1078 596 314 36 2496 (397) 4123" under one quarter).
+            if row and header and len(row[1]) <= len(header):
                 label, amounts, pcts = row
                 target = period if period in header else (None if period else max(header))
                 if target is not None:
@@ -271,18 +289,31 @@ def _candidates(pages: list[list[str]], period: Period | None) -> list[tuple[tup
                             if metric == "operating_profit_inr_cr" and mirrored and mirrored[idx] is not None:
                                 out.append(((0, 9, pos), "operating_margin_pct", mirrored[idx], src))
 
-            if _GUIDANCE.search(line):
+            out.extend(_sentence_candidates(line, pos, f"p.{page_no} text: {line.strip()[:80]}"))
+    return out
+
+
+def _sentence_candidates(line: str, pos: tuple[int, int], src: str) -> list[tuple[tuple, str, float, str]]:
+    without_quarters = line
+    for start, end, _ in reversed(find_period_spans(line)):
+        without_quarters = without_quarters[:start] + " " + without_quarters[end:]
+    if _GUIDANCE.search(line) or _NOT_THE_QUARTER.search(without_quarters):
+        return []
+    out = []
+    starts = [0] + [m.end() for m in _SENTENCE_BREAK.finditer(line)]
+    for metric, rx in _PROSE.items():
+        for start in starts:
+            sentence = line[start:]
+            m = rx.match(sentence, len(sentence) - len(_LEADER.sub("", sentence)))
+            if not m:
                 continue
-            for metric, rx in _PROSE.items():
-                m = rx.search(line)
-                if not m:
-                    continue
-                value = _number(m.group(1))
-                if value is None:
-                    continue
-                if m.lastindex and m.lastindex >= 2:
-                    value *= _UNIT_TO_CRORE[m.group(2).lower().rstrip("s")]
-                out.append(((1, 0, pos), metric, value, f"p.{page_no} text: {line.strip()[:80]}"))
+            value = _number(m.group(1))
+            if value is None:
+                continue
+            if m.lastindex and m.lastindex >= 2:
+                value *= _UNIT_TO_CRORE[m.group(2).lower().rstrip("s")]
+            out.append(((1, 0, pos), metric, value, src))
+            break
     return out
 
 
