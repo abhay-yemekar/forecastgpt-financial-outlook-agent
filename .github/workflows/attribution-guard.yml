@@ -1,0 +1,30 @@
+name: attribution-guard
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  attribution-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Title and body arrive via env (never interpolated into the script),
+      # so PR text can't inject shell.
+      - name: PR title, body and commit messages carry no AI attribution
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          {
+            printf '%s\n%s\n' "$PR_TITLE" "$PR_BODY"
+            git log --format='%B' "$BASE_SHA..$HEAD_SHA"
+          } | bash scripts/check-attribution.sh
