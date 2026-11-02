@@ -1,10 +1,11 @@
 from datetime import date
+from urllib.parse import unquote
 
 import requests
 from bs4 import BeautifulSoup
 
 from app.utils import fetcher
-from app.utils.periods import latest_ended_quarters
+from app.utils.periods import find_periods, latest_ended_quarters
 
 TODAY = date(2026, 11, 2)
 
@@ -39,8 +40,10 @@ class _Page:
         pass
 
 
-def _fake_site(monkeypatch, tmp_path, missing=(), not_pdf=()):
-    """Serve SCREENER_HTML and record downloads; `missing` URLs 404."""
+def _fake_site(monkeypatch, tmp_path, missing=(), not_pdf=(), no_profit=(), reports=None):
+    """Serve SCREENER_HTML and record downloads; `missing` URLs 404. Each
+    PDF reports the quarter its URL names, or the one `reports` gives it;
+    `no_profit` PDFs state no quarterly profit."""
     downloads = []
 
     def fake_download(url, out_dir):
@@ -51,8 +54,15 @@ def _fake_site(monkeypatch, tmp_path, missing=(), not_pdf=()):
         path.write_bytes(b"<!DOCTYPE html>" if any(m in url for m in not_pdf) else b"%PDF-1.7 " + url.encode())
         return str(path)
 
+    def fake_results_document(path):
+        url = open(path, "rb").read()[9:].decode()
+        quarter = next((q for part, q in (reports or {}).items() if part in url), None)
+        named = find_periods(unquote(url))
+        return not any(m in url for m in no_profit), quarter or (max(named) if named else None)
+
     monkeypatch.setattr(fetcher.requests, "get", lambda url, **kw: _Page())
     monkeypatch.setattr(fetcher, "_download", fake_download)
+    monkeypatch.setattr(fetcher, "results_document", fake_results_document)
     return downloads
 
 
@@ -126,6 +136,20 @@ def test_web_pages_behind_a_ppt_chip_are_skipped(monkeypatch, tmp_path):
     _fake_site(monkeypatch, tmp_path, not_pdf=["X_InvestorRelease"])
     fin, _ = fetcher.fetch_recent_docs("HCLTECH", max_quarters=1, today=TODAY)
     assert _sources(fin) == ["https://www.bseindia.com/stockinfo/AnnPdfOpen.aspx?Pname=analyst-meet.pdf"]
+
+
+def test_a_deck_without_quarterly_profit_is_passed_over(monkeypatch, tmp_path):
+    # ICICI Bank: a debt-investor deck sits in the same month as the results deck.
+    _fake_site(monkeypatch, tmp_path, no_profit=["X_InvestorRelease"])
+    fin, _ = fetcher.fetch_recent_docs("HCLTECH", max_quarters=1, today=TODAY)
+    assert _sources(fin) == ["https://www.bseindia.com/stockinfo/AnnPdfOpen.aspx?Pname=analyst-meet.pdf"]
+
+
+def test_a_second_document_for_a_quarter_is_passed_over(monkeypatch, tmp_path):
+    # Neither URL names its quarter; the documents themselves both report Q1 FY27.
+    _fake_site(monkeypatch, tmp_path, reports={"X_InvestorRelease": (2027, 1), "analyst-meet": (2027, 1)})
+    fin, _ = fetcher.fetch_recent_docs("HCLTECH", today=TODAY)
+    assert _sources(fin) == ["https://nsearchives.nseindia.com/corporate/X_InvestorRelease.pdf"]
 
 
 def test_announcements_are_the_last_resort(monkeypatch, tmp_path):

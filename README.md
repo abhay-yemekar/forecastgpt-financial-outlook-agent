@@ -63,6 +63,7 @@ This project **automates** the entire workflow using an AI agent powered by loca
 
 ### **4. pypdfium2 + pdfplumber**
 - Rebuild results tables from character positions (pypdfium2)  
+- Revenue, net profit and operating margin per quarter; net interest income and margin for banks  
 - Read earnings-call transcripts (pdfplumber)  
 
 ### **5. MySQL**

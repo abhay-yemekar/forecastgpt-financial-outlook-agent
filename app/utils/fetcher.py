@@ -10,9 +10,10 @@ import requests
 from bs4 import BeautifulSoup
 
 from app.config import settings
+from app.tools.financial_extractor import results_document
 
 from .logger import get_logger
-from .periods import find_periods, latest_ended_quarters
+from .periods import find_periods, latest_ended_quarters, period_label
 
 log = get_logger("fetcher")
 
@@ -193,17 +194,19 @@ def _is_pdf(path: str) -> bool:
 
 
 def _download_results(candidates: list[str], max_quarters: int) -> list[str]:
-    """Download candidates in order until `max_quarters` PDFs, skipping a URL
-    that names a quarter already fetched, one that fails, or a page that is
-    not a PDF (some "PPT" chips link to web pages)."""
+    """Download candidates in order until `max_quarters` results PDFs of
+    different quarters. Skipped: a URL that names a quarter already fetched,
+    one that fails, a page that is not a PDF (some "PPT" chips link to web
+    pages), a deck with no quarterly profit (ICICI Bank lists a debt-investor
+    deck in the same month as its results deck), and a second document for
+    a quarter."""
     paths: list[str] = []
     quarters: set = set()
     for url in candidates:
         if len(paths) == max_quarters:
             break
         named = find_periods(unquote(url))
-        quarter = max(named) if named else None
-        if quarter is not None and quarter in quarters:
+        if named and max(named) in quarters:
             continue
         try:
             path = _download(url, settings.DATA_DIR)
@@ -213,8 +216,14 @@ def _download_results(candidates: list[str], max_quarters: int) -> list[str]:
         if not _is_pdf(path):
             log.info(f"Skipping results document {url}: not a PDF")
             continue
-        if quarter is not None:
-            quarters.add(quarter)
+        is_results, quarter = results_document(path)
+        if not is_results:
+            log.info(f"Skipping results document {url}: no quarterly profit in it")
+            continue
+        if quarter is not None and quarter in quarters:
+            log.info(f"Skipping results document {url}: a second one for {period_label(quarter)}")
+            continue
+        quarters.update(q for q in (quarter, max(named) if named else None) if q is not None)
         paths.append(path)
     return paths
 

@@ -9,7 +9,10 @@ from app.utils.periods import document_period, find_periods, period_label
         ("Q2 FY27 Performance Highlights", ["Q2 FY27"]),
         ("q2fy27 and Q2-FY27 and Q2 FY 2027", ["Q2 FY27", "Q2 FY27", "Q2 FY27"]),
         ("Q2’27 Revenue Distribution", ["Q2 FY27"]),
+        ("FY2026 Q2-2026 H1-2026 Q1-2027 Q2-2027", ["Q2 FY26", "Q1 FY27", "Q2 FY27"]),  # ICICI Bank
+        ("Q1FY26 Q4FY26 Q1FY27 over over", ["Q1 FY26", "Q4 FY26", "Q1 FY27"]),  # SBI
         ("Q1 2026-27 Fact Sheet", ["Q1 FY27"]),
+        ("Q2-2026-27", ["Q2 FY27"]),  # a fiscal-year range, not ICICI's "Q2-2026"
         ("financial-statements/2025-26/q4/Presentations", ["Q4 FY26"]),
         ("quarterly-results/2026-2027/q2/documents/fact-sheet.pdf", ["Q2 FY27"]),
         ("financial-results/2026-2027/quarter-2/", ["Q2 FY27"]),

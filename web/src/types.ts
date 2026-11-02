@@ -22,6 +22,8 @@ export interface ForecastResult {
 }
 
 export interface FinancialMetrics {
+  /** "bank" when the documents report net interest income and margin instead of revenue, else "standard". */
+  metric_set?: string
   documents?: {
     path: string
     /** The quarter the document reports, e.g. "Q2 FY27". */
