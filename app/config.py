@@ -57,6 +57,10 @@ class Settings(BaseSettings):
     # dedicated worker process exists (docker compose / python -m app.worker).
     EMBED_WORKER: bool = False
 
+    # One tiny chat + embedding call when a worker starts, logged loudly on
+    # failure and reported by GET /ready (catches retired models early).
+    MODEL_SELF_TEST: bool = True
+
     # Database configuration (used for logging only)
     MYSQL_HOST: str = "localhost"
     MYSQL_PORT: int = 3306

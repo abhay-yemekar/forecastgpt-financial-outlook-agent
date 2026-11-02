@@ -63,10 +63,16 @@ class OpenAIProvider:
         if not settings.OPENAI_API_KEY:
             raise RuntimeError("OPENAI_API_KEY is not set; export it to use the openai provider.")
         mod = _require("langchain_openai", "langchain-openai")
+        kwargs = self._kwargs()
+        if settings.OPENAI_BASE_URL:
+            # OpenAIEmbeddings pre-tokenizes inputs into token-ID arrays by
+            # default; OpenAI-compatible APIs (Gemini, ...) accept only strings
+            # and answer 501. Our chunks are far below any context limit.
+            kwargs["check_embedding_ctx_length"] = False
         return mod.OpenAIEmbeddings(
             model=settings.EMBEDDING_MODEL,
             api_key=settings.OPENAI_API_KEY,
-            **self._kwargs(),
+            **kwargs,
         )
 
 

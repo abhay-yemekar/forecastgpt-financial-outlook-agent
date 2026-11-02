@@ -21,6 +21,9 @@ os.environ["EMBEDDING_MODEL"] = "nomic-embed-text"
 # tests with a stubbed client (tests/test_supabase_keys.py).
 os.environ["SUPABASE_URL"] = ""
 os.environ["SUPABASE_JWT_SECRET"] = "test-jwt-secret-for-principal-auth"
+# The startup model self-test would call real providers; it has its own
+# tests with fakes (tests/test_model_selftest.py).
+os.environ["MODEL_SELF_TEST"] = "0"
 
 import fakeredis  # noqa: E402
 import pytest  # noqa: E402

@@ -56,8 +56,8 @@ server, no CORS setup (site + API share one origin).
 | `LLM_PROVIDER` / `EMBEDDING_PROVIDER` | `openai` / `openai` |
 | `OPENAI_API_KEY` | AI Studio key |
 | `OPENAI_BASE_URL` | `https://generativelanguage.googleapis.com/v1beta/openai/` |
-| `LLM_MODEL` | `gemini-2.0-flash-lite` |
-| `EMBEDDING_MODEL` | `text-embedding-004` |
+| `LLM_MODEL` | `gemini-3.5-flash-lite` (or `gemini-3.8-flash` for richer reports) |
+| `EMBEDDING_MODEL` | `gemini-embedding-001` |
 | `SUPABASE_URL` | your Supabase Project URL |
 | `SUPABASE_PUBLISHABLE_KEY` | Supabase → Project Settings → API Keys → publishable key (browser-safe; the site reads it from `GET /config` to show sign-in) |
 | `QUOTA_FREE_PER_DAY` / `QUOTA_GLOBAL_PER_DAY` | `3` / `400` |
@@ -69,7 +69,9 @@ server, no CORS setup (site + API share one origin).
    frontend inside it, then Python) — **5–10 minutes**. "Live" appears in the
    dashboard header with a `https://forecastgpt-xxxx.onrender.com` URL.
 4. **Verify (gate):** open `https://<url>/ready`
-   → `{"database":"ok","redis":"ok"}`. If redis says unavailable → D-02. If
+   → `{"database":"ok","redis":"ok","models":{"chat":"ok","embeddings":"ok"}}`
+   (`models` fills in ~10 s after boot, once the worker's self-test ran; a
+   `failed (…)` there → D-16). If redis says unavailable → D-02. If
    the service build failed → D-01.
 5. Open the site root → landing renders with live counters → **See a live
    sample** works (no login).
@@ -237,6 +239,13 @@ recovery commands.
 The free project **paused** after ~1 week without API traffic — restore it
 in the Supabase dashboard (Restore project), and prevent recurrence with
 any weekly traffic (the deployed site's sign-ins themselves count).
+
+**D-16 · `/ready` shows `"models": {"chat": "failed (NotFoundError)"}` (or embeddings failed)**
+The configured model was retired or renamed: Render Logs show
+`MODEL SELF-TEST FAILED … is no longer available`. Pick a current model from
+ai.google.dev/gemini-api/docs/deprecations, update `LLM_MODEL` /
+`EMBEDDING_MODEL`, and save (Render restarts the service). Chat failures fail
+every forecast; embedding failures silently drop transcript analysis.
 
 ---
 
