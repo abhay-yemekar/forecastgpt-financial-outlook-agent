@@ -1,0 +1,14 @@
+# Line endings: LF in the repo and in every working tree, whatever the OS,
+# so a checkout copied between Windows and macOS/Linux never shows every
+# file as modified. PowerShell scripts keep CRLF for Windows PowerShell.
+* text=auto eol=lf
+*.ps1 text eol=crlf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.docx binary
+*.woff2 binary
