@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 import pytest
 
 from app.db.models import ForecastLog
@@ -42,7 +44,7 @@ def test_job_runs_pipeline_and_completes(monkeypatch, fake_redis):
         seen["llm_api_key"] = llm_api_key
         return {**CANNED_OUTPUT, "_symbol": symbol}
 
-    monkeypatch.setattr("app.jobs.agent.run", fake_run)
+    monkeypatch.setattr("app.jobs.get_agent", lambda: SimpleNamespace(run=fake_run))
 
     row_id = _make_row()
     final_status = run_forecast_job(row_id, "INFY", "INFY", "Infosys", "Give me the outlook.", None, None)
@@ -82,7 +84,7 @@ def test_byok_key_staged_in_redis_is_used_once_and_deleted(fake_redis, monkeypat
         seen["llm_api_key"] = llm_api_key
         return CANNED_OUTPUT
 
-    monkeypatch.setattr("app.jobs.agent.run", fake_run)
+    monkeypatch.setattr("app.jobs.get_agent", lambda: SimpleNamespace(run=fake_run))
     status = run_forecast_job(row_id, "INFY", "INFY", "Infosys", "q", ["q.pdf"], None)
 
     assert status == "completed"
@@ -96,7 +98,7 @@ def test_job_failure_records_error(monkeypatch, fake_redis):
         raise RuntimeError("LLM exploded")
 
     monkeypatch.setattr("app.jobs.fetch_recent_docs", lambda slug, max_quarters=2: (["q2.pdf"], []))
-    monkeypatch.setattr("app.jobs.agent.run", boom)
+    monkeypatch.setattr("app.jobs.get_agent", lambda: SimpleNamespace(run=boom))
 
     row_id = _make_row()
     final_status = run_forecast_job(row_id, "INFY", "INFY", "Infosys", "q", None, None)

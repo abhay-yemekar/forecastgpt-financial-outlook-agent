@@ -147,15 +147,19 @@ MAX_PROMPT_CHARS = 10000  # safeguard for very large inputs
 
 class ForecastAgent:
     def __init__(self) -> None:
-        self.llm = get_llm_provider().get_chat_model(temperature=0.2)
+        # Built on first non-BYOK use, so a deployment without an operator
+        # key can still serve BYOK jobs.
+        self.llm: Any = None
         log.info(f"ForecastAgent initialised with LLM_PROVIDER={settings.LLM_PROVIDER} model: {settings.LLM_MODEL}")
 
     def _chat_model(self, llm_api_key: str | None):
         """Default chat model, or a one-off model using the caller's own
         provider key (BYOK, D-2 hybrid)."""
-        if not llm_api_key:
-            return self.llm
-        return get_llm_provider().get_chat_model(temperature=0.2, api_key=llm_api_key)
+        if llm_api_key:
+            return get_llm_provider().get_chat_model(temperature=0.2, api_key=llm_api_key)
+        if self.llm is None:
+            self.llm = get_llm_provider().get_chat_model(temperature=0.2)
+        return self.llm
 
     def run(
         self,

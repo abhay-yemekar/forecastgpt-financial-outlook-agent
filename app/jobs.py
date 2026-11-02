@@ -22,8 +22,17 @@ log = get_logger("jobs")
 # job timeout (180s) would kill them.
 JOB_TIMEOUT_SECONDS = 900
 
-# One agent per worker process, reused across jobs.
-agent = ForecastAgent()
+_agent: ForecastAgent | None = None
+
+
+def get_agent() -> ForecastAgent:
+    """One agent per worker process, reused across jobs. Built on the first
+    job rather than at import: the API process imports this module only to
+    enqueue, and must boot even without an LLM key (e.g. BYOK-only)."""
+    global _agent
+    if _agent is None:
+        _agent = ForecastAgent()
+    return _agent
 
 
 def get_queue() -> Queue:
@@ -100,7 +109,7 @@ def run_forecast_job(
             else:
                 _, tr_paths = fetch_recent_docs(company_slug, max_quarters=2)
 
-            out = agent.run(
+            out = get_agent().run(
                 query,
                 fin_paths,
                 tr_paths,
