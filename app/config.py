@@ -39,6 +39,11 @@ class Settings(BaseSettings):
     # JWT authentication — API keys keep working either way.
     SUPABASE_URL: str = ""
     SUPABASE_JWT_SECRET: str = ""
+    # Browser-safe key the web app needs to start Supabase Auth, served at
+    # runtime by GET /config so the built bundle never has it baked in.
+    # Publishable (sb_publishable_...) preferred; the legacy anon key works too.
+    SUPABASE_PUBLISHABLE_KEY: str = ""
+    SUPABASE_ANON_KEY: str = ""
 
     # D-2 hybrid key model: free daily quota for console users on the
     # operator's managed LLM key (bounded inside Gemini's free tier), BYOK

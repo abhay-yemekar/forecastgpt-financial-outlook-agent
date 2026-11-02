@@ -9,7 +9,7 @@ import {
   type Auth,
   type QuotaInfo,
 } from './api'
-import { supabase } from './lib/supabase'
+import { getSupabase } from './lib/supabase'
 import sampleJob from './data/sampleResult.json'
 import type { Company, Job, JobSummary, Stats } from './types'
 import Landing from './components/Landing'
@@ -83,6 +83,11 @@ export default function App() {
     : apiKey.trim()
       ? { apiKey, providerKey: providerKey || undefined }
       : undefined
+  // Poll ticks read auth through a ref: a job resumed on page load starts
+  // polling before the Supabase session arrives, and a captured value would
+  // stay empty (401) forever.
+  const authRef = useRef(auth)
+  authRef.current = auth
 
   useEffect(() => {
     fetchCompanies().then(setCompanies).catch(() => {})
@@ -99,16 +104,24 @@ export default function App() {
 
   // Supabase session lifecycle (no-op when auth isn't configured).
   useEffect(() => {
-    if (!supabase) return
-    supabase.auth.getSession().then(({ data }) => {
-      const s = data.session
-      if (s?.user.email) setSession({ email: s.user.email, token: s.access_token })
+    let cancelled = false
+    let unsubscribe: (() => void) | undefined
+    getSupabase().then((sb) => {
+      if (!sb || cancelled) return
+      sb.auth.getSession().then(({ data }) => {
+        const s = data.session
+        if (!cancelled && s?.user.email) setSession({ email: s.user.email, token: s.access_token })
+      })
+      const { data } = sb.auth.onAuthStateChange((_event, s) => {
+        if (s?.user.email) setSession({ email: s.user.email, token: s.access_token })
+        else setSession(null)
+      })
+      unsubscribe = () => data.subscription.unsubscribe()
     })
-    const { data } = supabase.auth.onAuthStateChange((_event, s) => {
-      if (s?.user.email) setSession({ email: s.user.email, token: s.access_token })
-      else setSession(null)
-    })
-    return () => data.subscription.unsubscribe()
+    return () => {
+      cancelled = true
+      unsubscribe?.()
+    }
   }, [])
 
   const stopPolling = useCallback(() => {
@@ -176,8 +189,10 @@ export default function App() {
     (jobId: number) => {
       stopPolling()
       timer.current = window.setInterval(async () => {
+        const current = authRef.current
+        if (!current) return // session still loading; try again next tick
         try {
-          const next = await getForecast(auth!, jobId)
+          const next = await getForecast(current, jobId)
           setJob(next)
           saveActiveJob(
             next.status === 'completed' || next.status === 'failed'
@@ -198,23 +213,32 @@ export default function App() {
         }
       }, POLL_MS)
     },
-    [auth, stopPolling, refreshHistory, refreshQuota],
+    [stopPolling, refreshHistory, refreshQuota],
   )
 
   // Resume an in-flight job after a refresh, or honour the current route.
   useEffect(() => {
+    let cancelled = false
     const active = loadActiveJob()
-    if (active && (localStorage.getItem(KEY_STORAGE) || supabase)) {
-      setView('app')
-      setStartedAt(Date.now())
-      setJob({ job_id: active.jobId, status: active.status as Job['status'] })
-      poll(active.jobId)
-    } else {
-      applyRoute(currentRoute())
+    const resume = async () => {
+      const canAuth = Boolean(localStorage.getItem(KEY_STORAGE)) || (active ? Boolean(await getSupabase()) : false)
+      if (cancelled) return
+      if (active && canAuth) {
+        setView('app')
+        setStartedAt(Date.now())
+        setJob({ job_id: active.jobId, status: active.status as Job['status'] })
+        poll(active.jobId)
+      } else {
+        applyRoute(currentRoute())
+      }
     }
+    resume()
     const onHashChange = () => applyRoute(currentRoute())
     window.addEventListener('hashchange', onHashChange)
-    return () => window.removeEventListener('hashchange', onHashChange)
+    return () => {
+      cancelled = true
+      window.removeEventListener('hashchange', onHashChange)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -284,7 +308,7 @@ export default function App() {
   )
 
   const onSignOut = useCallback(() => {
-    if (supabase) supabase.auth.signOut()
+    getSupabase().then((sb) => sb?.auth.signOut())
     setSession(null)
   }, [])
 
