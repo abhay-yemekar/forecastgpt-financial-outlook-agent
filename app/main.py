@@ -14,7 +14,7 @@ from app.auth import Principal, get_current_principal
 from app.companies import resolve_company, seed_companies
 from app.config import settings
 from app.db.models import Base, Company, ForecastLog
-from app.db.mysql import engine, get_db, storage_backend
+from app.db.mysql import enable_row_level_security, engine, get_db, storage_backend
 from app.jobs import enqueue_forecast_job
 from app.quota import enforce_user_quota, quota_usage
 from app.ratelimit import enforce_rate_limit
@@ -23,6 +23,7 @@ from app.utils.logger import get_logger
 log = get_logger("api")
 
 Base.metadata.create_all(bind=engine)
+enable_row_level_security(engine, Base.metadata)
 seed_companies()
 
 app = FastAPI(title="ForecastGPT - Financial Outlook Agent")
