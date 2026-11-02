@@ -11,7 +11,7 @@ langchain==0.3.30
 langchain-core==0.3.86
 langchain-community==0.3.31
 langchain-ollama==0.3.10
-langchain-openai==0.3.35
+langchain-openai==1.1.14
 faiss-cpu==1.15.1
 
 SQLAlchemy==2.1.6
