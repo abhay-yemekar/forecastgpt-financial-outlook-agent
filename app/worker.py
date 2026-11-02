@@ -30,6 +30,9 @@ def create_worker() -> SimpleWorker | Worker:
 
 
 def main() -> None:
+    from app.ai.selftest import start_model_self_test
+
+    start_model_self_test()
     worker = create_worker()
     log.info("Starting worker on 'forecasts' queue.")
     worker.work()

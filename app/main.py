@@ -8,6 +8,8 @@ from redis import Redis
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.ai import selftest
+from app.ai.selftest import start_model_self_test
 from app.auth import Principal, get_current_principal
 from app.companies import resolve_company, seed_companies
 from app.config import settings
@@ -50,6 +52,7 @@ def _start_embedded_worker() -> None:
 
     threading.Thread(target=_run, name="rq-embedded-worker", daemon=True).start()
     log.info("Embedded RQ worker started (EMBED_WORKER=1) — single-container mode.")
+    start_model_self_test()
 
 
 class ForecastRequest(BaseModel):
@@ -229,7 +232,11 @@ def health():
 
 @app.get("/ready")
 def ready():
-    """Connectivity check for the app's two dependencies: DB and Redis."""
+    """Connectivity check for the app's two dependencies: DB and Redis.
+
+    Also reports the startup model self-test under "models" (informational:
+    it never changes the status code, and is "unchecked" in an API process
+    whose worker runs elsewhere)."""
     checks = {}
     try:
         with engine.connect() as conn:
@@ -243,7 +250,7 @@ def ready():
     except Exception as e:
         checks["redis"] = f"unavailable: {e}"
     ok = all(v == "ok" for v in checks.values())
-    return JSONResponse(checks, status_code=200 if ok else 503)
+    return JSONResponse({**checks, "models": dict(selftest.status)}, status_code=200 if ok else 503)
 
 
 # Serve the built web frontend (web/dist) if present — one deployable unit.
