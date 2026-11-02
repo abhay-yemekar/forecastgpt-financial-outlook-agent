@@ -55,7 +55,7 @@ Output format:
 }
 
 Field guidance:
-- period_analyzed: list of the quarter names or periods you are basing your view on.
+- period_analyzed: the "period" of each financial document you used (e.g. "Q2 FY27"), newest first.
 - financial_trends.revenue: direction + 1 short reason (e.g. "increasing, driven by strong BFSI demand").
 - financial_trends.net_profit: direction + key drivers (e.g. "stable despite wage hikes due to cost optimisation").
 - financial_trends.operating_margin: direction + colour on utilisation / pricing / costs.
@@ -191,7 +191,8 @@ def build_user_prompt(query: str, fin: Any, themes: Any, market: Any, company_na
     head = [
         f"Task: {task}",
         "",
-        "Structured financial metrics extracted from quarterly financial statements (already parsed for you):",
+        "Structured financial metrics extracted from quarterly results documents (already parsed for you; "
+        "amounts in ₹ crore, margins in %, each document's quarter in its \"period\"):",
         _dumps(fin),
         "",
         "Key management commentary snippets from earnings call transcripts, grouped by analytical theme:",
