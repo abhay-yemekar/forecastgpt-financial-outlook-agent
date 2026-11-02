@@ -1,0 +1,550 @@
+[
+ {
+  "document": "TCS Q2 FY27 fact sheet",
+  "url": "https://www.tcs.com/content/dam/tcs/investor-relations/financial-statements/2026-27/q2/Presentations/Q2%202026-27%20Fact%20Sheet.pdf",
+  "pages": {
+   "4": [
+    "Q2 FY27 Performance Highlights",
+    "- INR Revenue of ₹ 731,880 Mn, up 1.3% QoQ | up 11.2% YoY",
+    "- Operating Margin at 24.0%",
+    "- Net Margin at 19.0%"
+   ],
+   "5": [
+    "Q2 FY26 Q3 FY26 Q4 FY26 Q1 FY27 Q2 FY27 Q2 FY26 Q3 FY26 Q4 FY26 Q1 FY27 Q2 FY27",
+    "Q2 FY26 Q3 FY26 Q4 FY26 Q1 FY27 Q2 FY27 Q2 FY26 Q3 FY26 Q4 FY26 Q1 FY27 Q2 FY27",
+    "Q2 FY26 Q3 FY26 Q4 FY26 Q1 FY27 Q2 FY27 Q2 FY26 Q3 FY26 Q4 FY26 Q1 FY27 Q2 FY27",
+    "*Q2 FY26, Q3 FY26 and Q1 FY27 excludes exceptional items"
+   ],
+   "6": [
+    "Q2 FY26 Q3 FY26 Q4 FY26 Q1 FY27 Q2 FY27 Q2 FY26 Q3 FY26 Q4 FY26 Q1 FY27 Q2 FY27",
+    "Q2 FY26 Q3 FY26 Q4 FY26 Q1 FY27 Q2 FY27 Q2 FY26 Q3 FY26 Q4 FY26 Q1 FY27 Q2 FY27",
+    "Q2 FY26 Q3 FY26 Q4 FY26 Q1 FY27 Q2 FY27 Q2 FY26 Q3 FY26 Q4 FY26 Q1 FY27 Q2 FY27",
+    "*Q2 FY26, Q3 FY26 and Q1 FY27 excludes exceptional items"
+   ],
+   "8": [
+    "Geography (%) Q2 FY26 Q1 FY27 Q2 FY27"
+   ],
+   "9": [
+    "Vertical (%) Q2 FY26 Q1 FY27 Q2 FY27"
+   ],
+   "10": [
+    "Clients Contribution Q2 FY26 Q1 FY27 Q2 FY27"
+   ],
+   "14": [
+    "₹ Million % of Revenue",
+    "Q2 FY26 Q1 FY27 Q2 FY27 Q2 FY26 Q1 FY27 Q2 FY27",
+    "Revenue 657,990 722,750 731,880 100.0 100.0 100.0",
+    "Operating income 165,650 173,170 175,530 25.2 24.0 24.0",
+    "Net income 129,040 138,490 138,840 19.6 19.2 19.0",
+    "*Q2 FY26 and Q1 FY27 excludes exceptional items"
+   ],
+   "15": [
+    "₹ Million % of Revenue",
+    "Q2 FY26* Q1 FY27* Q2 FY27 Q2 FY26* Q1 FY27* Q2 FY27",
+    "Operating Margin 165,650 173,170 175,530 25.2% 24.0% 24.0%",
+    "*Q2 FY26 and Q1 FY27 excludes exceptional items"
+   ],
+   "16": [
+    "IFRS in ₹ Mn Q2 FY26 Q1 FY27 Q2 FY27"
+   ],
+   "17": [
+    "₹ Million",
+    "31-Mar-26 30-Sep-26"
+   ],
+   "18": [
+    "$ Million % of Revenue",
+    "Q2 FY26 Q1 FY27 Q2 FY27 Q2 FY26 Q1 FY27 Q2 FY27",
+    "Revenue 7,466 7,624 7,642 100.0 100.0 100.0",
+    "Operating income 1,879 1,826 1,833 25.2 24.0 24.0",
+    "Net income 1,464 1,460 1,450 19.6 19.2 19.0",
+    "*Q2 FY26 and Q1 FY27 excludes exceptional items"
+   ],
+   "19": [
+    "$ Million % of Revenue",
+    "Q2 FY26* Q1 FY27* Q2 FY27 Q2 FY26* Q1 FY27* Q2 FY27",
+    "*Q2 FY26 and Q1 FY27 excludes exceptional items"
+   ],
+   "20": [
+    "$ Million",
+    "31-Mar-26 30-Sep-26"
+   ],
+   "21": [
+    "₹ Crore % of Revenue",
+    "Q2 FY26 Q1 FY27 Q2 FY27 Q2 FY26 Q1 FY27 Q2 FY27",
+    "Revenue 65,799 72,275 73,188 100.0 100.0 100.0",
+    "Net Profit 12,904 13,849 13,884 19.6 19.2 19.0",
+    "*Q2 FY26 and Q1 FY27 excludes exceptional items"
+   ],
+   "22": [
+    "₹ Crore",
+    "31-Mar-26 30-Sep-26"
+   ],
+   "23": [
+    "Q2 FY26 Q1 FY27 Q2 FY27 Q2 FY26 Q1 FY27 Q2 FY27"
+   ]
+  },
+  "expected": {
+   "period": "Q2 FY27",
+   "total_revenue_inr_cr": 73188.0,
+   "net_profit_inr_cr": 13884.0,
+   "operating_margin_pct": 24.0,
+   "net_margin_pct": 19.0
+  }
+ },
+ {
+  "document": "TCS Q1 FY27 fact sheet",
+  "url": "https://www.tcs.com/content/dam/tcs/investor-relations/financial-statements/2026-27/q1/Presentations/Q1%202026-27%20Fact%20Sheet.pdf",
+  "pages": {
+   "4": [
+    "Q1 FY27 Performance Highlights",
+    "- INR Revenue of ₹ 722,750 Mn, up 2.2% QoQ | up 13.9% YoY",
+    "- Operating Margin at 24.0%",
+    "- Net Margin at 19.2%"
+   ],
+   "5": [
+    "Q1 FY26 Q2 FY26 Q3 FY26 Q4 FY26 Q1 FY27 Q1 FY26 Q2 FY26 Q3 FY26 Q4 FY26 Q1 FY27",
+    "Q1 FY26 Q2 FY26 Q3 FY26 Q4 FY26 Q1 FY27 Q1 FY26 Q2 FY26 Q3 FY26 Q4 FY26 Q1 FY27",
+    "Q1 FY26 Q2 FY26 Q3 FY26 Q4 FY26 Q1 FY27 Q1 FY26 Q2 FY26 Q3 FY26 Q4 FY26 Q1 FY27"
+   ],
+   "6": [
+    "Q1 FY26 Q2 FY26 Q3 FY26 Q4 FY26 Q1 FY27 Q1 FY26 Q2 FY26 Q3 FY26 Q4 FY26 Q1 FY27",
+    "Q1 FY26 Q2 FY26 Q3 FY26 Q4 FY26 Q1 FY27 Q1 FY26 Q2 FY26 Q3 FY26 Q4 FY26 Q1 FY27",
+    "Q1 FY26 Q2 FY26 Q3 FY26 Q4 FY26 Q1 FY27 Q1 FY26 Q2 FY26 Q3 FY26 Q4 FY26 Q1 FY27"
+   ],
+   "8": [
+    "Geography (%) Q1 FY26 Q4 FY26 Q1 FY27"
+   ],
+   "9": [
+    "Vertical (%) Q1 FY26 Q4 FY26 Q1 FY27"
+   ],
+   "10": [
+    "Clients Contribution Q1 FY26 Q4 FY26 Q1 FY27"
+   ],
+   "14": [
+    "₹ Million % of Revenue",
+    "Q1 FY26 Q4 FY26 Q1 FY27 Q1 FY26 Q4 FY26 Q1 FY27",
+    "Revenue 634,370 706,980 722,750 100.0 100.0 100.0",
+    "Operating income 155,140 178,700 173,170 24.5 25.3 24.0",
+    "Net income 127,600 137,180 138,490 20.1 19.4 19.2",
+    "* Q1 FY27 excludes exceptional items"
+   ],
+   "15": [
+    "₹ Crore % of Revenue",
+    "Q1 FY26 Q2 FY26* Q3 FY26* Q4 FY26 Q1 FY27* Q1 FY26 Q2 FY26* Q3 FY26* Q4 FY26 Q1 FY27*"
+   ],
+   "16": [
+    "IFRS in ₹ Mn Q1 FY26 Q4 FY26 Q1 FY27"
+   ],
+   "17": [
+    "₹ Million",
+    "31-Mar-26 30-Jun-26"
+   ],
+   "18": [
+    "$ Million % of Revenue",
+    "Q1 FY26 Q4 FY26 Q1 FY27 Q1 FY26 Q4 FY26 Q1 FY27",
+    "Revenue 7,421 7,621 7,624 100.0 100.0 100.0",
+    "Operating income 1,815 1,927 1,826 24.5 25.3 24.0",
+    "Net income 1,493 1,479 1,460 20.1 19.4 19.2",
+    "*Q1 FY27 excludes exceptional items"
+   ],
+   "19": [
+    "$ Million % of Revenue",
+    "Q1 FY26 Q2 FY26* Q3 FY26* Q4 FY26 Q1 FY27* Q1 FY26 Q2 FY26* Q3 FY26* Q4 FY26 Q1 FY27*"
+   ],
+   "20": [
+    "$ Million",
+    "31-Mar-26 30-Jun-26"
+   ],
+   "21": [
+    "₹ Crore % of Revenue",
+    "Q1 FY26 Q4 FY26 Q1 FY27 Q1 FY26 Q4 FY26 Q1 FY27",
+    "Revenue 63,437 70,698 72,275 100.0 100.0 100.0",
+    "Net Profit 12,760 13,718 13,849 20.1 19.4 19.2",
+    "*Q1 FY27 excludes exceptional items"
+   ],
+   "22": [
+    "₹ Crore",
+    "31-Mar-26 30-Jun-26"
+   ],
+   "23": [
+    "Q1 FY26 Q4 FY26 Q1 FY27 Q1 FY26 Q4 FY26 Q1 FY27"
+   ]
+  },
+  "expected": {
+   "period": "Q1 FY27",
+   "total_revenue_inr_cr": 72275.0,
+   "net_profit_inr_cr": 13849.0,
+   "operating_margin_pct": 24.0,
+   "net_margin_pct": 19.2
+  }
+ },
+ {
+  "document": "Infosys Q2 FY27 fact sheet",
+  "url": "https://www.infosys.com/investors/reports-filings/quarterly-results/2026-2027/q2/documents/fact-sheet.pdf",
+  "pages": {
+   "1": [
+    "Consolidated Financial Data - Second Quarter, Fiscal 2027",
+    "Consolidated Financial Data - Second Quarter, Fiscal 2023",
+    "(in %)",
+    "Sep 30, 2026 Jun 30, 2026 Sep 30, 2025 Reported CC",
+    "(in %)",
+    "Sep 30, 2026 Jun 30, 2026 Sep 30, 2025 Reported CC",
+    "Sep 30, 2026 Jun 30, 2026 Sep 30, 2025"
+   ],
+   "2": [
+    "Consolidated Financial Data - Second Quarter, Fiscal 2027",
+    "Consolidated Financial Data - Second Quarter, Fiscal 2023",
+    "(in %)",
+    "Sep 30, 2026 Jun 30, 2026 Sep 30, 2025",
+    "(Nos.)",
+    "Sep 30, 2026 Jun 30, 2026 Sep 30, 2025",
+    "In US $ million",
+    "Sep 30, 2026 Jun 30, 2026 Sep 30, 2025",
+    "In ₹ crore",
+    "Sep 30, 2026 Jun 30, 2026 Sep 30, 2025"
+   ],
+   "3": [
+    "Consolidated Financial Data - Second Quarter, Fiscal 2027",
+    "Consolidated Financial Data - Second Quarter, Fiscal 2023",
+    "In US $ million, except per equity share data",
+    "Particulars Sep 30, 2026 Sep 30, 2025 Jun 30, 2026",
+    "Revenues 5,145 5,076 1.3% 5,082 1.2%",
+    "Operating profit 1,079 1,065 1.3% 1,072 0.7%",
+    "Operating margin % 21.0 21.0 0.0% 21.1 -0.1%",
+    "Net profit (after non-controlling interests) 817 839 -2.5% 819 -0.2%",
+    "In US $ million, except per equity share data",
+    "Particulars Sep 30, 2026 Sep 30, 2025 Growth %",
+    "Revenues 10,227 10,018 2.1%",
+    "Operating profit 2,151 2,093 2.8%",
+    "Operating margin % 21.0 20.9 0.1%",
+    "Net profit (after non-controlling interests) 1,637 1,647 -0.6%"
+   ],
+   "4": [
+    "Consolidated Financial Data - Second Quarter, Fiscal 2027",
+    "Consolidated Financial Data - Second Quarter, Fiscal 2023",
+    "In ₹ crore, except per equity share data",
+    "Particulars Sep 30, 2026 Sep 30, 2025 Jun 30, 2026",
+    "Revenues 49,244 44,490 10.7% 48,211 2.1%",
+    "Operating profit 10,330 9,353 10.4% 10,163 1.6%",
+    "Operating margin % 21.0 21.0 0.0% 21.1 -0.1%",
+    "Net profit (after non-controlling interests) 7,823 7,364 6.2% 7,769 0.7%",
+    "In ₹ crore, except per equity share data",
+    "Particulars Sep 30, 2026 Sep 30, 2025 Growth %",
+    "Revenues 97,454 86,769 12.3%",
+    "Operating Profit 20,494 18,157 12.9%",
+    "Operating margin % 21.0 20.9 0.1%",
+    "Net profit (after non-controlling interests) 15,592 14,285 9.1%"
+   ]
+  },
+  "expected": {
+   "period": "Q2 FY27",
+   "total_revenue_inr_cr": 49244.0,
+   "net_profit_inr_cr": 7823.0,
+   "operating_margin_pct": 21.0,
+   "net_margin_pct": 15.9
+  }
+ },
+ {
+  "document": "Infosys Q1 FY27 fact sheet",
+  "url": "https://www.infosys.com/investors/reports-filings/quarterly-results/2026-2027/q1/documents/fact-sheet.pdf",
+  "pages": {
+   "1": [
+    "(in %)",
+    "Jun 30, 2026 Mar 31, 2026 Jun 30, 2025 Reported CC",
+    "(in %)",
+    "Jun 30, 2026 Mar 31, 2026 Jun 30, 2025 Reported CC",
+    "Jun 30, 2026 Mar 31, 2026 Jun 30, 2025"
+   ],
+   "2": [
+    "(in %)",
+    "Jun 30, 2026 Mar 31, 2026 Jun 30, 2025",
+    "(Nos.)",
+    "Jun 30, 2026 Mar 31, 2026 Jun 30, 2025",
+    "In US $ million",
+    "Jun 30, 2026 Mar 31, 2026 Jun 30, 2025",
+    "In ₹ crore",
+    "Jun 30, 2026 Mar 31, 2026 Jun 30, 2025"
+   ],
+   "3": [
+    "In US $ million, except per equity share data",
+    "Particulars Jun 30, 2026 Jun 30, 2025 Mar 31, 2026",
+    "Revenues 5,082 4,941 2.8% 5,040 0.8%",
+    "Operating Profit 1,072 1,028 4.3% 1,055 1.6%",
+    "Operating Margin % 21.1 20.8 0.3% 20.9 0.2%",
+    "Net Profit (after non-controlling interests) 819 809 1.3% 919 -10.9%",
+    "In ₹ crore, except per equity share data",
+    "Particulars Jun 30, 2026 Jun 30, 2025 Mar 31, 2026",
+    "Revenues 48,211 42,279 14.0% 46,402 3.9%",
+    "Operating Profit 10,163 8,803 15.4% 9,743 4.3%",
+    "Operating Margin % 21.1 20.8 0.3% 21.0 0.1%",
+    "Net Profit (after non-controlling interests) 7,769 6,921 12.2% 8,501 -8.6%"
+   ]
+  },
+  "expected": {
+   "period": "Q1 FY27",
+   "total_revenue_inr_cr": 48211.0,
+   "net_profit_inr_cr": 7769.0,
+   "operating_margin_pct": 21.1,
+   "net_margin_pct": 16.1
+  }
+ },
+ {
+  "document": "HCLTech Q2 FY27 investor release",
+  "url": "https://nsearchives.nseindia.com/corporate/HCLTECH_12102026170757_InvestorRelease_5.pdf",
+  "pages": {
+   "1": [
+    "Sub.: Investor Release Q2 FY 2027"
+   ],
+   "2": [
+    "Q2 FY27"
+   ],
+   "4": [
+    "Q2 FY27 Performance"
+   ],
+   "5": [
+    "Q2 FY27 Revenue Mix"
+   ],
+   "6": [
+    "stack, HCLTech is well-positioned to be a Services grew 3.0% QoQ with growth across Net Income of INR 5,132 Crores, up 11.0%"
+   ],
+   "7": [
+    "Revenue (in $M) EBIT (in $M) Net Income (in $M)",
+    "Sep'25 Dec'25 Mar'26 Jun'26 Sep'26 Sep'25 Dec'25 Mar'26 Jun'26 Sep'26 Sep'25 Dec'25 Mar'26 Jun'26 Sep'26",
+    "Sep’25 Dec’25 Mar’26 Jun’26 Sep’26 Sep’25 Dec’25 Mar’26 Jun’26 Sep’26 Sep’25 Dec’25 Mar’26 Jun’26 Sep’26"
+   ],
+   "8": [
+    "Revenue (in ₹ Cr) EBIT (in ₹ Cr) Net Income (in ₹ Cr)",
+    "Sep'25 Dec'25 Mar'26 Jun'26 Sep'26 Sep'25 Dec'25 Mar'26 Jun'26 Sep'26 Sep'25 Dec'25 Mar'26 Jun'26 Sep'26",
+    "Sep’25 Dec’25 Mar’26 Jun’26 Sep’26 Sep’25 Dec’25 Mar’26 Jun’26 Sep’26 Sep’25 Dec’25 Mar’26 Jun’26 Sep’26"
+   ],
+   "9": [
+    "Sep’22 Sep’23 Sep’24 Sep’25 Sep’26",
+    "Sep'22 Sep'23 Sep'24 Sep'25 Sep'26"
+   ],
+   "10": [
+    "Human Capital (Quarter ended) 30-Sep-25 31-Dec-25 31-Mar-26 30-Jun-26 30-Sep-26",
+    "Intellectual Capital 30-Sep-25 31-Dec-25 31-Mar-26 30-Jun-26 30-Sep-26"
+   ],
+   "11": [
+    "Revenue Mix and Growth 30-Sep-25 30-Jun-26 30-Sep-26 YoY CC Growth QoQ CC Growth",
+    "EBIT Margin 30-Sep-25 30-Jun-26 30-Sep-26 YoY BPS change QoQ BPS change",
+    "LTM ROIC 30-Sep-25 30-Jun-26 30-Sep-26"
+   ],
+   "12": [
+    "HCLSoftware Revenue 30-Sep-25 31-Dec-25 31-Mar-26 30-Jun-26 30-Sep-26",
+    "Total Revenue 333 425 307 313 294",
+    "HCLSoftware ARR 30-Sep-25 31-Dec-25 31-Mar-26 30-Jun-26 30-Sep-26"
+   ],
+   "13": [
+    "Details 30-Sep-25 30-Jun-26 30-Sep-26 YoY CC Growth",
+    "Details 30-Sep-25 30-Jun-26 30-Sep-26 YoY CC Growth"
+   ],
+   "14": [
+    "Number of $M Clients (LTM) 30-Sep-25 30-Jun-26 30-Sep-26 YoY Change QoQ Change",
+    "Client Contribution to Revenue (LTM) 30-Sep-25 30-Jun-26 30-Sep-26",
+    "Days Sales Outstanding 30-Sep-25 30-Jun-26 30-Sep-26"
+   ],
+   "25": [
+    "(Amount in $M)",
+    "HCLTech Revenue 30-Sep-25 31-Dec-25 31-Mar-26 30-Jun-26 30-Sep-26"
+   ],
+   "26": [
+    "Consolidated Income Statement (Amount in ₹ Crores)",
+    "30-Sep-25 30-Jun-26 30-Sep-26 30-Sep-25 30-Jun-26 30-Sep-26",
+    "Revenues 31,942 34,579 35,620 100.0% 100.0% 100.0%",
+    "EBIT 5,550 5,831 6,465 17.4%* 16.9%* 18.2%*",
+    "Net Income 4,235 4,624 5,132 13.3%* 13.4%* 14.4%*"
+   ],
+   "27": [
+    "(Amount in ₹ Crores)",
+    "30-Sep-25 30-Jun-26 30-Sep-26 30-Sep-25 30-Jun-26 30-Sep-26",
+    "EBIT 5,550 5,831 6,465 17.4%* 16.9%* 18.2%*"
+   ],
+   "28": [
+    "Consolidated Income Statement (Amount in $M)",
+    "30-Sep-25 30-Jun-26 30-Sep-26 30-Sep-25 30-Jun-26 30-Sep-26",
+    "Revenues 3,644 3,650 3,724 100.0% 100.0% 100.0%",
+    "EBIT 637 616 677 17.5%* 16.9%* 18.2%*",
+    "Net Income 486 488 538 13.3% 13.4%* 14.4%*"
+   ],
+   "29": [
+    "(Amount in $M)",
+    "30-Sep-25 30-Jun-26 30-Sep-26 30-Sep-25 30-Jun-26 30-Sep-26",
+    "EBIT 637 616 677 17.5%* 16.9%* 18.2%*"
+   ],
+   "30": [
+    "In ₹ Crores In $M",
+    "As on 31-Mar-26 As on 30-Sep-26 As on 31-Mar-26 As on 30-Sep-26"
+   ],
+   "31": [
+    "In ₹ Crores In $M"
+   ]
+  },
+  "expected": {
+   "period": "Q2 FY27",
+   "total_revenue_inr_cr": 35620.0,
+   "net_profit_inr_cr": 5132.0,
+   "operating_margin_pct": 18.2,
+   "net_margin_pct": 14.4
+  }
+ },
+ {
+  "document": "HCLTech Q1 FY27 investor release",
+  "url": "https://www.bseindia.com/stockinfo/AnnPdfOpen.aspx?Pname=94fbf3ba-0db4-4384-b65d-db8289bcdb37.pdf",
+  "pages": {
+   "1": [
+    "Sub.: Investor Release Q1 FY 2027"
+   ],
+   "2": [
+    "Q1 FY27"
+   ],
+   "4": [
+    "Q1 FY27 Performance"
+   ],
+   "5": [
+    "Q1 FY27 Revenue Mix"
+   ],
+   "7": [
+    "In $M In $M In $M",
+    "Jun'25 Sep'25 Dec'25 Mar'26 Jun'26 Jun'25 Sep'25 Dec'25 Mar'26 Jun'26 Jun'25 Sep'25 Dec'25 Mar'26 Jun'26",
+    "Jun'25 Sep'25 Dec'25 Mar'26 Jun'26 Jun'25 Jun'25 Sep'25 Sep'25 Dec'25 Dec'25 Mar'26 Mar'26 Jun'26 Jun'26 Jun'25 Jun'25 Sep'25 Sep'25 Dec'25 Dec'25 Mar'26 Mar'26 Jun'26 Jun'26"
+   ],
+   "8": [
+    "In ₹ Crores In ₹ Crores In ₹ Crores",
+    "Jun'25 Sep'25 Dec'25 Mar'26 Jun'26 Jun'25 Sep'25 Dec'25 Mar'26 Jun'26 Jun'25 Sep'25 Dec'25 Mar'26 Jun'26",
+    "Jun'25 Sep'25 Dec'25 Mar'26 Jun'26 Jun'25 Jun'25 Sep'25 Sep'25 Dec'25 Dec'25 Mar'26 Mar'26 Jun'26 Jun'26 Jun'25 Jun'25 Sep'25 Sep'25 Dec'25 Dec'25 Mar'26 Mar'26 Jun'26 Jun'26"
+   ],
+   "9": [
+    "Jun'22 Jun'23 Jun'24 Jun'25 Jun'26",
+    "In $M",
+    "Jun’22 Jun’23 Jun’24 Jun’25 Jun’26"
+   ],
+   "10": [
+    "Human Capital (Quarter ended) 30-Jun-25 30-Sep-25 31-Dec-25 31-Mar-26 30-Jun-26",
+    "Intellectual Capital 30-Jun-25 30-Sep-25 31-Dec-25 31-Mar-26 30-Jun-26"
+   ],
+   "11": [
+    "Revenue Mix and Growth 30-Jun-25 31-Mar-26 30-Jun-26 YoY CC Growth QoQ CC Growth",
+    "EBIT Margin 30-Jun-25 31-Mar-26 30-Jun-26 YoY BPS change QoQ BPS change",
+    "LTM ROIC 30-Jun-25 31-Mar-26 30-Jun-26"
+   ],
+   "12": [
+    "30-Jun-25 30-Sep-25 31-Dec-25 31-Mar-26 30-Jun-26",
+    "Total Revenue 330 333 425 307 313",
+    "30-Jun-25 30-Sep-25 31-Dec-25 31-Mar-26 30-Jun-26"
+   ],
+   "13": [
+    "Details 30-Jun-25 31-Mar-26 30-Jun-26 YoY CC Growth",
+    "Details 30-Jun-25 31-Mar-26 30-Jun-26 YoY CC Growth"
+   ],
+   "14": [
+    "Number of $M Clients (LTM) 30-Jun-25 31-Mar-26 30-Jun-26",
+    "Client Contribution to Revenue (LTM) 30-Jun-25 31-Mar-26 30-Jun-26",
+    "Days Sales Outstanding 30-Jun-25 31-Mar-26 30-Jun-26"
+   ],
+   "23": [
+    "(Amount in $M)",
+    "HCLTech Revenue 30-Jun-25 30-Sep-25 31-Dec-25 31-Mar-26 30-Jun-26"
+   ],
+   "24": [
+    "Consolidated Income Statement (Amount in ₹ Crores)",
+    "30-Jun-25 31-Mar-26 30-Jun-26 30-Jun-25 31-Mar-26 30-Jun-26",
+    "Revenues 30,349 33,981 34,579 100.0% 100.0% 100.0%",
+    "EBIT 4,942 5,620 5,831 16.3% 16.5%* 16.9%*",
+    "Net Income 3,843 4,488 4,624 12.7% 13.2%* 13.4%*"
+   ],
+   "25": [
+    "(Amount in ₹ Crores)",
+    "30-Jun-25 31-Mar-26 30-Jun-26 30-Jun-25 31-Mar-26 30-Jun-26",
+    "EBIT 4,942 5,620 5,831 16.3% 16.5%* 16.9%*"
+   ],
+   "26": [
+    "(Amount in $M)",
+    "30-Jun-25 31-Mar-26 30-Jun-26 30-Jun-25 31-Mar-26 30-Jun-26",
+    "Revenues 3,545 3,682 3,650 100.0% 100.0% 100.0%",
+    "EBIT 578 607 616 16.3% 16.5%* 16.9%*",
+    "Net Income 450 486 488 12.7% 13.2%* 13.4%*"
+   ],
+   "27": [
+    "(Amount in $M)",
+    "30-Jun-25 31-Mar-26 30-Jun-26 30-Jun-25 31-Mar-26 30-Jun-26",
+    "EBIT 578 607 616 16.3% 16.5%* 16.9%*"
+   ],
+   "28": [
+    "In ₹ Crores In $M",
+    "As on 31-Mar-26 As on 30-Jun-26 As on 31-Mar-26 As on 30-Jun-26"
+   ],
+   "29": [
+    "In ₹ Crores In $M"
+   ]
+  },
+  "expected": {
+   "period": "Q1 FY27",
+   "total_revenue_inr_cr": 34579.0,
+   "net_profit_inr_cr": 4624.0,
+   "operating_margin_pct": 16.9,
+   "net_margin_pct": 13.4
+  }
+ },
+ {
+  "document": "Wipro Q2 FY27 investor deck",
+  "url": "https://www.wipro.com/content/dam/nexus/en/investor/quarterly-results/2026-2027/q2fy27/wipro-investor-ppt-q2fy27.pdf",
+  "pages": {
+   "5": [
+    "IT Services Revenue ($M)"
+   ],
+   "13": [
+    "ended September 30, 2026",
+    "Q2’27",
+    "( ₹ million)",
+    "IT Services Revenue 246,670 0.9% 9.0%",
+    "IT Services Operating Income 40,726 3.9% 6.8%",
+    "3. IT services operating margin for Q2’27 was at 16.5%, up by 0.5% QoQ and",
+    "4. Net income for the quarter was at ₹32.0 billion ($333.9 million), decrease of"
+   ],
+   "15": [
+    "for Quarter ending December 31, 2026"
+   ],
+   "16": [
+    "Services Revenue as per IFRS ($Mn)"
+   ]
+  },
+  "expected": {
+   "period": "Q2 FY27",
+   "total_revenue_inr_cr": 24667.0,
+   "net_profit_inr_cr": 3200.0,
+   "operating_margin_pct": 16.5,
+   "net_margin_pct": 13.0
+  }
+ },
+ {
+  "document": "Wipro Q1 FY27 investor deck",
+  "url": "https://www.wipro.com/content/dam/nexus/en/investor/quarterly-results/2026-2027/q1fy27/wipro-investor-ppt-q1fy27.pdf",
+  "pages": {
+   "5": [
+    "IT Services Revenue ($M)"
+   ],
+   "13": [
+    "ended June 30, 2026",
+    "All figures based on IFRS Q1’27 ( ₹ million) QoQ Growth YoY Growth",
+    "IT Services Revenue 244,529 1.8% 10.7%",
+    "IT Services Operating Income 39,187 -5.6% 2.8%",
+    "3. IT services operating margin for Q1’27 was at 16.0%, decrease of 1.3% QoQ and 1.2% YoY.",
+    "4. Net income for the quarter was at ₹33.6 billion ($354.6 million), decrease of 4.7% QoQ"
+   ],
+   "15": [
+    "for Quarter ending September 30, 2026"
+   ],
+   "16": [
+    "Services Revenue as per IFRS ($Mn)"
+   ]
+  },
+  "expected": {
+   "period": "Q1 FY27",
+   "total_revenue_inr_cr": 24452.9,
+   "net_profit_inr_cr": 3360.0,
+   "operating_margin_pct": 16.0,
+   "net_margin_pct": 13.7
+  }
+ }
+]

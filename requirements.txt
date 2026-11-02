@@ -4,6 +4,9 @@ python-dotenv==1.2.4
 requests==2.34.2
 beautifulsoup4==4.15.0
 pdfplumber==0.11.10
+# Results-PDF text with character positions (financial extractor). pdfplumber
+# depends on it too; pinned here because the extractor imports it directly.
+pypdfium2==5.14.0
 
 # Coherent late-0.3 release train (mixing 0.3.x and 1.x packages breaks at
 # runtime — see T-27 in docs/project_execution.md).

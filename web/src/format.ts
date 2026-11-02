@@ -17,7 +17,7 @@ export function fmtINR(value: number): string {
   return value.toLocaleString('en-IN')
 }
 
-export function parseMetricNum(v: string | null | undefined): number | null {
+export function parseMetricNum(v: string | number | null | undefined): number | null {
   if (v == null) return null
   const n = parseFloat(String(v).replace(/,/g, ''))
   return Number.isFinite(n) ? n : null

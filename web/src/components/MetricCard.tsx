@@ -47,10 +47,13 @@ function MiniTooltip({ active, payload, unit }: any) {
 
 export default function MetricCard({ label, unit, metricKey, metrics, decimals = 0 }: Props) {
   const values: number[] = []
+  const periods: string[] = []
   for (const doc of metrics?.documents ?? []) {
     const v = parseMetricNum(doc.metrics?.[metricKey])
-    if (v !== null) {
+    // Two documents for one quarter are not a comparison (matches trend_summary).
+    if (v !== null && !(doc.period && periods.includes(doc.period))) {
       values.push(v)
+      periods.push(doc.period ?? (values.length === 1 ? 'latest' : 'previous'))
       if (values.length === 2) break
     }
   }
@@ -61,8 +64,8 @@ export default function MetricCard({ label, unit, metricKey, metrics, decimals =
   const data =
     values.length > 0
       ? [
-          { bucket: 'latest', value: values[0] },
-          ...(values[1] !== undefined ? [{ bucket: 'previous', value: values[1] }] : []),
+          { bucket: periods[0], value: values[0] },
+          ...(values[1] !== undefined ? [{ bucket: periods[1], value: values[1] }] : []),
         ]
       : []
 

@@ -22,7 +22,13 @@ export interface ForecastResult {
 }
 
 export interface FinancialMetrics {
-  documents?: { path: string; metrics: Record<string, string | null> }[]
+  documents?: {
+    path: string
+    /** The quarter the document reports, e.g. "Q2 FY27". */
+    period?: string | null
+    metrics: Record<string, string | number | null>
+    sources?: Record<string, string>
+  }[]
   trend_summary?: Record<string, unknown>
 }
 
