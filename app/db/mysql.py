@@ -50,6 +50,23 @@ def _create_engine_with_fallback():
         return create_engine(SQLITE_FALLBACK_URL, echo=False, future=True)
 
 
+def enable_row_level_security(engine, metadata) -> None:
+    """Turn on row-level security for every app table (PostgreSQL only).
+
+    On Supabase the public schema is also served by its REST Data API to
+    anyone holding the publishable key, which the web app serves publicly.
+    RLS with no policies gives those API roles no rows at all, while this
+    app keeps full access because it connects as the tables' owner, which
+    RLS does not restrict. Idempotent; a no-op on SQLite and MySQL.
+    """
+    if engine.dialect.name != "postgresql":
+        return
+    with engine.begin() as conn:
+        for table in metadata.sorted_tables:
+            conn.execute(text(f'ALTER TABLE "{table.name}" ENABLE ROW LEVEL SECURITY'))
+    log.info(f"Row-level security enabled on {len(metadata.sorted_tables)} app tables.")
+
+
 engine = _create_engine_with_fallback()
 # expire_on_commit=False keeps ORM attributes readable after commit/close
 # (the CLI prints row fields after committing).
