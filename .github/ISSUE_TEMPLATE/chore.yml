@@ -1,0 +1,15 @@
+name: Chore
+description: Maintenance, tooling, dependencies, CI, or docs.
+title: "chore: "
+labels: ["type:chore"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What and why
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: Done when
