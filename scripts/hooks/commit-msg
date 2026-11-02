@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Optional local guard; enable with: git config core.hooksPath scripts/hooks
+exec "$(git rev-parse --show-toplevel)/scripts/check-attribution.sh" < "$1"

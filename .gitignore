@@ -73,3 +73,6 @@ web/dist/
 # --- Screenshots ---
 screenshots/source/
 screenshots/raw/
+
+# --- Claude Code (shared settings are committed; personal ones are not) ---
+.claude/settings.local.json

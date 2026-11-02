@@ -38,7 +38,9 @@ The tests are offline: no network, no LLM, no real Redis or database. Keep them 
 
 ## Attribution
 
-Commits, pull requests, issues and merge messages carry the human author only. Don't add AI co-author trailers, "generated with" footers, or tool tags; a CI check rejects them. Mentions of AI providers as **product** content (Gemini, Anthropic, OpenAI as LLM backends) are fine.
+Commits, pull requests, issues and merge messages carry the human author only. Don't add AI co-author trailers, "generated with" footers, or tool tags; the `attribution-guard` check rejects them. Mentions of AI providers as **product** content (Gemini, Anthropic, OpenAI as LLM backends) are fine.
+
+To catch it before you push, enable the same check as a local hook: `git config core.hooksPath scripts/hooks`. The repo's `.claude/settings.json` also turns off Claude Code's default commit trailer and PR footer.
 
 ## Security
 
