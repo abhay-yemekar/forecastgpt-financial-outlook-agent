@@ -3,6 +3,21 @@ import type { ForecastResult, Job } from '../types'
 import ConfidenceGauge from './ConfidenceGauge'
 import MetricCard from './MetricCard'
 
+// Banks report net interest income and margin where other companies report
+// revenue and operating margin; the forecast's trend texts follow suit.
+const CARDS = {
+  standard: [
+    { label: 'Revenue', unit: '₹ cr', metricKey: 'total_revenue_inr_cr', decimals: 0 },
+    { label: 'Net profit', unit: '₹ cr', metricKey: 'net_profit_inr_cr', decimals: 0 },
+    { label: 'Operating margin', unit: '%', metricKey: 'operating_margin_pct', decimals: 1 },
+  ],
+  bank: [
+    { label: 'Net interest income', unit: '₹ cr', metricKey: 'net_interest_income_inr_cr', decimals: 0 },
+    { label: 'Net profit', unit: '₹ cr', metricKey: 'net_profit_inr_cr', decimals: 0 },
+    { label: 'Net interest margin', unit: '%', metricKey: 'net_interest_margin_pct', decimals: 2 },
+  ],
+}
+
 function ChipList({ items }: { items?: string[] }) {
   if (!items?.length) return null
   return (
@@ -31,6 +46,12 @@ export default function ResultView({
   const price = result.market_context?.price_inr
   const trends = result.financial_trends ?? {}
   const fm = result.financial_metrics
+  const cards = CARDS[fm?.metric_set === 'bank' ? 'bank' : 'standard']
+  const trendCards = [
+    [cards[0].label, trends.revenue],
+    [cards[1].label, trends.net_profit],
+    [cards[2].label, trends.operating_margin],
+  ] as const
 
   const copyJson = async () => {
     try {
@@ -81,23 +102,15 @@ export default function ResultView({
               </linearGradient>
             </defs>
           </svg>
-          <MetricCard label="Revenue" unit="₹ cr" metricKey="total_revenue_inr_cr" metrics={fm} />
-          <MetricCard label="Net profit" unit="₹ cr" metricKey="net_profit_inr_cr" metrics={fm} />
-          <MetricCard
-            label="Operating margin"
-            unit="%"
-            metricKey="operating_margin_pct"
-            metrics={fm}
-            decimals={1}
-          />
+          {cards.map((c) => (
+            <MetricCard key={c.metricKey} {...c} metrics={fm} />
+          ))}
         </div>
       </section>
 
-      {([['Revenue', trends.revenue], ['Net profit', trends.net_profit], ['Operating margin', trends.operating_margin]] as const).some(
-        ([, v]) => v,
-      ) && (
+      {trendCards.some(([, v]) => v) && (
         <section className="trend-cards fade-up d2">
-          {([['Revenue', trends.revenue], ['Net profit', trends.net_profit], ['Operating margin', trends.operating_margin]] as const).map(
+          {trendCards.map(
             ([label, text]) =>
               text ? (
                 <div className="glass hover-lift trend" key={label}>

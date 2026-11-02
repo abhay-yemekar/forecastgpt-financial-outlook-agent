@@ -3,9 +3,9 @@
 The fiscal year ends on 31 March: Q1 is Apr-Jun, Q2 Jul-Sep, Q3 Oct-Dec and
 Q4 Jan-Mar, so FY27 runs from April 2026 to March 2027. A period is a
 (fiscal_year, quarter) tuple such as (2027, 2), which sorts chronologically.
-Filings name the same quarter many ways ("Q2 FY27", "Q2'27", "Q2 2026-27",
-"quarter ended September 30, 2026", "30-Sep-26", "Second Quarter, Fiscal
-2027"), and URLs add "2026-27/q2" and "q2fy27".
+Filings name the same quarter many ways ("Q2 FY27", "Q2'27", "Q2-2027",
+"Q2 2026-27", "quarter ended September 30, 2026", "30-Sep-26", "Second
+Quarter, Fiscal 2027"), and URLs add "2026-27/q2" and "q2fy27".
 """
 
 import re
@@ -24,8 +24,10 @@ _PATTERNS = [
     re.compile(r"\bq\s?(?P<q>[1-4])\s*[-_ ]?\s*fy\s?(?P<fy>\d{4}|\d{2})\b", re.I),
     # Q2'27 (Wipro)
     re.compile(r"\bq(?P<q>[1-4])\s?['’]\s?(?P<fy>\d{2})\b", re.I),
+    # Q2-2027, the fiscal year (ICICI Bank); not the start of "Q2-2026-27"
+    re.compile(r"\bq(?P<q>[1-4])-(?P<fy>20\d{2})\b(?!\s*-\s*\d)", re.I),
     # Q2 2026-27 (TCS), and 2026-27/q2, 2026-2027/q2, 2026-2027/quarter-2 in URLs
-    re.compile(r"\bq(?P<q>[1-4])\s+(?P<start>20\d{2})\s*-\s*(?:\d{4}|\d{2})\b", re.I),
+    re.compile(r"\bq(?P<q>[1-4])[\s-]+(?P<start>20\d{2})\s*-\s*(?:\d{4}|\d{2})\b", re.I),
     re.compile(r"\b(?P<start>20\d{2})-(?:\d{4}|\d{2})/(?:q|quarter-)(?P<q>[1-4])\b", re.I),
     # Second Quarter, Fiscal 2027
     re.compile(

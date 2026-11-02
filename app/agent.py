@@ -59,6 +59,8 @@ Field guidance:
 - financial_trends.revenue: direction + 1 short reason (e.g. "increasing, driven by strong BFSI demand").
 - financial_trends.net_profit: direction + key drivers (e.g. "stable despite wage hikes due to cost optimisation").
 - financial_trends.operating_margin: direction + colour on utilisation / pricing / costs.
+- If the metrics' "metric_set" is "bank", the company reports no revenue: write financial_trends.revenue
+  about net interest income (NII) and financial_trends.operating_margin about net interest margin (NIM).
 - management_themes: 4–8 short bullets summarising what management emphasised.
 - risks: 3–6 concise, real risks (macro, client concentration, pricing pressure, attrition, etc.).
 - opportunities: 3–6 concise upside levers (GenAI deals, cost takeout programmes, large deal pipeline, etc.).
@@ -192,7 +194,8 @@ def build_user_prompt(query: str, fin: Any, themes: Any, market: Any, company_na
         f"Task: {task}",
         "",
         "Structured financial metrics extracted from quarterly results documents (already parsed for you; "
-        "amounts in ₹ crore, margins in %, each document's quarter in its \"period\"):",
+        "amounts in ₹ crore, margins in %, each document's quarter in its \"period\"; operating margin is "
+        "the EBITDA margin when the document reports no EBIT):",
         _dumps(fin),
         "",
         "Key management commentary snippets from earnings call transcripts, grouped by analytical theme:",
