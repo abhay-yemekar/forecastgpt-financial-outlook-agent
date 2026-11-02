@@ -1,3 +1,4 @@
+import hashlib
 import ipaddress
 import os
 import re
@@ -95,11 +96,19 @@ def classify_doc(url: str, text: str) -> str:
 def screener_docs_url(screener_slug: str) -> str:
     return f"https://www.screener.in/company/{screener_slug}/consolidated/#documents"
 
+def cache_filename(url: str) -> str:
+    """Cache file name for `url`: a URL-hash prefix plus a readable basename.
+    The basename alone collides, since company sites reuse names like
+    press-release.pdf every quarter and would serve last quarter's file."""
+    digest = hashlib.sha256(url.encode()).hexdigest()[:16]
+    basename = re.sub(r"[^\w\-.]+", "_", url.split("/")[-1])[:80] or "doc.pdf"
+    return f"{digest}_{basename}"
+
+
 def _download(url: str, out_dir: str) -> str:
     url = validate_url(url)
     os.makedirs(out_dir, exist_ok=True)
-    filename = re.sub(r"[^\w\-.]+", "_", url.split("/")[-1]) or "doc.pdf"
-    path = os.path.join(out_dir, filename)
+    path = os.path.join(out_dir, cache_filename(url))
     if os.path.exists(path) and os.path.getsize(path) > 0:
         return path
     # Manual redirect loop so every hop re-passes validate_url (a redirect
