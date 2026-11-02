@@ -99,15 +99,13 @@ def run_forecast_job(
 
         provider_key = _pop_provider_key(row_id)
         try:
-            if financial_doc_urls:
-                fin_paths = fetch_given_urls(financial_doc_urls)
-            else:
-                fin_paths, _ = fetch_recent_docs(company_slug, max_quarters=2)
-
-            if transcript_urls:
-                tr_paths = fetch_given_urls(transcript_urls)
-            else:
-                _, tr_paths = fetch_recent_docs(company_slug, max_quarters=2)
+            fin_paths = fetch_given_urls(financial_doc_urls) if financial_doc_urls else None
+            tr_paths = fetch_given_urls(transcript_urls) if transcript_urls else None
+            if fin_paths is None or tr_paths is None:
+                # One screener.in scrape covers whichever list wasn't supplied.
+                recent_fin, recent_tr = fetch_recent_docs(company_slug, max_quarters=2)
+                fin_paths = recent_fin if fin_paths is None else fin_paths
+                tr_paths = recent_tr if tr_paths is None else tr_paths
 
             out = get_agent().run(
                 query,
