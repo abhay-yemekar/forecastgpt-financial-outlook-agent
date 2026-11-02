@@ -142,7 +142,71 @@ def _compress_themes(themes: Any,
     return compressed
 
 
-MAX_PROMPT_CHARS = 10000  # safeguard for very large inputs
+MAX_PROMPT_CHARS = 10000  # user-prompt budget; small local models have short contexts
+MAX_QUERY_CHARS = 1000
+
+# Progressively tighter (snippets per topic, chars per snippet) settings,
+# tried in order until the transcript themes fit the remaining budget.
+_THEME_LEVELS = ((2, 400), (2, 250), (1, 300), (1, 150))
+_THEMES_OMITTED = ["Transcript themes omitted to fit the prompt budget."]
+
+
+def _dumps(value: Any) -> str:
+    return json.dumps(value, indent=2, ensure_ascii=False)
+
+
+def _fit_themes(themes: Any, budget: int) -> str:
+    """Serialize transcript themes into at most `budget` characters by
+    shrinking them (fewer/shorter snippets, then fewer topics), never by
+    cutting the JSON mid-way."""
+    if not isinstance(themes, dict):
+        text = _dumps(themes)
+        return text if len(text) <= budget else _dumps(_THEMES_OMITTED)
+
+    compressed: dict[str, list[str]] = {}
+    for per_topic, per_snippet in _THEME_LEVELS:
+        compressed = _compress_themes(themes, per_topic, per_snippet)
+        text = _dumps(compressed)
+        if len(text) <= budget:
+            return text
+
+    # Still too big at the tightest level: keep whole topics while they fit
+    # (topics are ordered by analytical priority).
+    kept: dict[str, list[str]] = {}
+    for topic, snippets in compressed.items():
+        if len(_dumps({**kept, topic: snippets})) > budget:
+            break
+        kept[topic] = snippets
+    return _dumps(kept) if kept else _dumps(_THEMES_OMITTED)
+
+
+def build_user_prompt(query: str, fin: Any, themes: Any, market: Any, company_name: str) -> str:
+    """The user prompt, within MAX_PROMPT_CHARS. The task (capped at
+    MAX_QUERY_CHARS) and the extracted financial metrics are never cut, since
+    the report must be grounded in them; transcript themes get whatever
+    budget is left."""
+    task = query.strip()
+    if len(task) > MAX_QUERY_CHARS:
+        task = task[:MAX_QUERY_CHARS] + " [...]"
+    head = [
+        f"Task: {task}",
+        "",
+        "Structured financial metrics extracted from quarterly financial statements (already parsed for you):",
+        _dumps(fin),
+        "",
+        "Key management commentary snippets from earnings call transcripts, grouped by analytical theme:",
+    ]
+    tail = [
+        "",
+        f"Optional market context for the {company_name} stock (can be empty):",
+        _dumps(market),
+        "",
+        "Now, using ONLY the information above and following the schema from the system prompt, "
+        "produce the final JSON forecast object.",
+    ]
+    # The two newlines joining head, themes and tail.
+    fixed = len("\n".join(head)) + len("\n".join(tail)) + 2
+    return "\n".join([*head, _fit_themes(themes, MAX_PROMPT_CHARS - fixed), *tail])
 
 
 class ForecastAgent:
@@ -204,28 +268,8 @@ class ForecastAgent:
             log.warning(f"Market fetch failed, continuing without it: {e}")
             market = {}
 
-        # 4) Build a single user prompt string (no templating logic that can break)
-        user_parts = [
-            f"Task: {query}",
-            "",
-            "Structured financial metrics extracted from quarterly financial statements (already parsed for you):",
-            json.dumps(fin, indent=2, ensure_ascii=False),
-            "",
-            "Key management commentary snippets from earnings call transcripts, grouped by analytical theme:",
-            json.dumps(themes, indent=2, ensure_ascii=False),
-            "",
-            f"Optional market context for the {company_name} stock (can be empty):",
-            json.dumps(market, indent=2, ensure_ascii=False),
-            "",
-            "Now, using ONLY the information above and following the schema from the system prompt, "
-            "produce the final JSON forecast object.",
-        ]
-        user_prompt = "\n".join(user_parts)
-
-        # Final character-level safeguard
-        if len(user_prompt) > MAX_PROMPT_CHARS:
-            # keep the tail – it will always contain the most recent, structured pieces
-            user_prompt = user_prompt[-MAX_PROMPT_CHARS:]
+        # 4) Build the user prompt within budget (task + metrics are never cut)
+        user_prompt = build_user_prompt(query, fin, themes, market, company_name)
 
         messages = [
             {"role": "system", "content": build_system_prompt(company_name)},
