@@ -23,14 +23,15 @@ def test_sentence_extraction():
 
 
 def test_rs_and_inr_currency_variants():
-    m = metrics("Total revenue Rs. 62,963 crore and net profit INR 11,909 crore for the quarter.")
+    m = metrics("Total revenue Rs. 62,963 crore; net profit INR 11,909 crore for the quarter.")
     assert m["total_revenue_inr_cr"] == 62963
     assert m["net_profit_inr_cr"] == 11909
 
 
 def test_units_are_normalised_to_crore():
     assert metrics("- INR Revenue of ₹ 731,880 Mn, up 1.3% QoQ")["total_revenue_inr_cr"] == 73188  # TCS
-    assert metrics("delivered revenue of ₹35,620 Crores")["total_revenue_inr_cr"] == 35620  # HCLTech
+    assert metrics("Revenue of ₹35,620 Crores, up 3.0% QoQ")["total_revenue_inr_cr"] == 35620  # HCLTech
+    assert metrics("• Profit after tax grew by 20.1% y-o-y to ₹ 148.43 bn")["net_profit_inr_cr"] == 14843  # ICICI
     assert metrics("Net income for the quarter was at ₹32.0 billion ($333.9 million)")["net_profit_inr_cr"] == 3200
     assert metrics("Net profit ₹ 5,00,000 lakh")["net_profit_inr_cr"] == 5000
 
@@ -57,6 +58,31 @@ def test_usd_and_unitless_figures_are_ignored():
 
 def test_guidance_is_not_a_result():
     assert metrics("FY27 guidance: EBIT margin expected in the range of 17.5% - 18.5%")["operating_margin_pct"] is None
+
+
+def test_full_year_and_half_year_sentences_are_not_the_quarter():
+    m = metrics(
+        "Highest ever Annual Net Profit of ₹ 80,032 crores with a YoY growth of 12.88%",  # SBI
+        "environment. Overall, for FY26, Gross Revenue at Rs. 80867.49 cr. increased by 1",  # ITC
+        "H1 revenues grew to ₹ 97,454 crore",
+    )
+    assert m["net_profit_inr_cr"] is None
+    assert m["total_revenue_inr_cr"] is None
+    # A quarter named with its fiscal year is still the quarter.
+    assert metrics("HCLTech delivered Q2 FY27 revenue of ₹35,620 Crores. Net income of ₹5,132 Crores")[
+        "net_profit_inr_cr"
+    ] == 5132
+
+
+def test_segment_and_subsidiary_sentences_are_skipped():
+    m = metrics(
+        "➢ O2C – Revenue ₹ 201,803 crore, up 30.4% YoY",  # Reliance segment
+        "✓ JPL PAT at ₹ 8,387 crore, up 13.7%",  # Reliance subsidiary
+        "– Net revenue of ₹ 9.6 bn; grew 37.3% YoY",  # HDFC Bank subsidiary
+    )
+    assert m["total_revenue_inr_cr"] is None
+    assert m["net_profit_inr_cr"] is None
+    assert metrics("➢ Record quarterly PAT: ₹29,550 crore (+33.8% YoY)")["net_profit_inr_cr"] == 29550
 
 
 # --- Table rows ------------------------------------------------------------------
@@ -102,6 +128,12 @@ def test_usd_tables_are_skipped():
         "Revenues 5,530 5,447",
     )
     assert m["total_revenue_inr_cr"] is None
+
+
+def test_segment_matrix_rows_are_skipped():
+    # L&T: one quarter heading over a row of per-segment values.
+    m = metrics("Segment Details – Q1 FY27", "₹ Crore", "Q1 FY27", "PAT 1078 596 314 36 2496 (397) 4123")
+    assert m["net_profit_inr_cr"] is None
 
 
 def test_full_year_columns_are_not_read_as_the_quarter():

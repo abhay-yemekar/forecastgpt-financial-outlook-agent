@@ -61,9 +61,9 @@ This project **automates** the entire workflow using an AI agent powered by loca
 - Enables RAG over large PDF text chunks  
 - Super fast vector indexing  
 
-### **4. PDFPlumber**
-- Extract structured PDF data  
-- Handles complex PDFs  
+### **4. pypdfium2 + pdfplumber**
+- Rebuild results tables from character positions (pypdfium2)  
+- Read earnings-call transcripts (pdfplumber)  
 
 ### **5. MySQL**
 - Stores logs  
