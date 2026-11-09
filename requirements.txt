@@ -6,7 +6,7 @@ beautifulsoup4==4.15.0
 pdfplumber==0.11.10
 # Results-PDF text with character positions (financial extractor). pdfplumber
 # depends on it too; pinned here because the extractor imports it directly.
-pypdfium2==5.14.0
+pypdfium2==5.15.0
 
 # Coherent late-0.3 release train (mixing 0.3.x and 1.x packages breaks at
 # runtime — see T-27 in docs/project_execution.md).
@@ -17,13 +17,13 @@ langchain-ollama==0.3.10
 langchain-openai==0.3.35
 faiss-cpu==1.15.1
 
-SQLAlchemy==2.1.6
+SQLAlchemy==2.1.8
 pymysql==1.2.3
 # Only needed when DATABASE_URL points at Postgres (Supabase).
 psycopg2-binary==2.9.13
-pydantic==2.14.2
+pydantic==2.14.3
 pydantic-settings==2.16.2
-python-multipart==0.0.32
+python-multipart==0.0.33
 
 redis==5.2.1
 rq==2.11.0
